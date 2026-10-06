@@ -24,6 +24,19 @@ type
 
   TFBMetaFieldList = array of TFBMetaField;
 
+  { Foreign Key info from Firebird system tables }
+  TFBForeignKeyInfo = record
+    ConstraintName: string;
+    TableName: string;
+    LocalField: string;
+    RefTable: string;
+    RefField: string;
+    UpdateRule: string;
+    DeleteRule: string;
+  end;
+
+  TFBForeignKeyInfoList = array of TFBForeignKeyInfo;
+
   { TFBMetaDataExtractor }
   TFBMetaDataExtractor = class
   public
@@ -35,12 +48,16 @@ type
     class function GetTableFields(const ATableName: string): TFBMetaFieldList;
     class procedure GetPrimaryKeys(const ATableName: string; List: TStrings);
     class procedure GetTableFieldNames(const ATableName: string; List: TStrings);
+    class function GetTableForeignKeys(const ATableName: string): TFBForeignKeyInfoList;
 
     { DDL Generators }
     class function GenerateCreateTableDDL(const ATableName: string): string;
     class function GenerateDropTableSQL(const ATableName: string): string;
     class function GenerateSelectTopSQL(const ATableName: string; Limit: Integer = 100): string;
     class function BuildCreateTableSQL(const ATableName: string; const Cols: array of TColumnDef; Firebird3Plus: Boolean = True): string;
+    class function DropConstraintSQL(const ATableName, AConstraintName: string): string;
+    class function AddForeignKeySQL(const ATableName: string; const FK: TForeignKeyDef): string;
+    class function AddPrimaryKeySQL(const ATableName, APKName, APKFields: string): string;
   end;
 
 implementation
@@ -399,6 +416,82 @@ begin
   end;
 
   Result := Result + ');';
+end;
+
+class function TFBMetaDataExtractor.GetTableForeignKeys(const ATableName: string): TFBForeignKeyInfoList;
+var
+  Qry: TSQLQuery;
+  Sql: string;
+  Idx: Integer;
+begin
+  SetLength(Result, 0);
+  if not FBConnManager.IsConnected then Exit;
+
+  Qry := TSQLQuery.Create(nil);
+  try
+    Sql := 'SELECT ' +
+           '  TRIM(RC.RDB$CONSTRAINT_NAME) AS FK_NAME, ' +
+           '  TRIM(RC.RDB$RELATION_NAME) AS TBL_NAME, ' +
+           '  TRIM(ISeg.RDB$FIELD_NAME) AS LOCAL_FLD, ' +
+           '  TRIM(RefRC.RDB$RELATION_NAME) AS REF_TBL, ' +
+           '  TRIM(RefISeg.RDB$FIELD_NAME) AS REF_FLD, ' +
+           '  TRIM(RefC.RDB$UPDATE_RULE) AS UPD_RULE, ' +
+           '  TRIM(RefC.RDB$DELETE_RULE) AS DEL_RULE ' +
+           'FROM RDB$RELATION_CONSTRAINTS RC ' +
+           'JOIN RDB$REF_CONSTRAINTS RefC ON RC.RDB$CONSTRAINT_NAME = RefC.RDB$CONSTRAINT_NAME ' +
+           'JOIN RDB$RELATION_CONSTRAINTS RefRC ON RefC.RDB$CONST_NAME_UQ = RefRC.RDB$CONSTRAINT_NAME ' +
+           'JOIN RDB$INDEX_SEGMENTS ISeg ON RC.RDB$INDEX_NAME = ISeg.RDB$INDEX_NAME ' +
+           'JOIN RDB$INDEX_SEGMENTS RefISeg ON RefRC.RDB$INDEX_NAME = RefISeg.RDB$INDEX_NAME ' +
+           '  AND ISeg.RDB$FIELD_POSITION = RefISeg.RDB$FIELD_POSITION ' +
+           'WHERE RC.RDB$CONSTRAINT_TYPE = ''FOREIGN KEY'' ' +
+           '  AND TRIM(RC.RDB$RELATION_NAME) = :TBL ' +
+           'ORDER BY RC.RDB$CONSTRAINT_NAME, ISeg.RDB$FIELD_POSITION;';
+
+    Qry.DataBase := FBConnManager.Connection;
+    Qry.Transaction := FBConnManager.Transaction;
+    Qry.SQL.Text := Sql;
+    Qry.ParamByName('TBL').AsString := UpperCase(Trim(ATableName));
+    Qry.Open;
+
+    Idx := 0;
+    while not Qry.EOF do
+    begin
+      SetLength(Result, Idx + 1);
+      Result[Idx].ConstraintName := Trim(Qry.FieldByName('FK_NAME').AsString);
+      Result[Idx].TableName      := Trim(Qry.FieldByName('TBL_NAME').AsString);
+      Result[Idx].LocalField     := Trim(Qry.FieldByName('LOCAL_FLD').AsString);
+      Result[Idx].RefTable       := Trim(Qry.FieldByName('REF_TBL').AsString);
+      Result[Idx].RefField       := Trim(Qry.FieldByName('REF_FLD').AsString);
+      Result[Idx].UpdateRule     := Trim(Qry.FieldByName('UPD_RULE').AsString);
+      Result[Idx].DeleteRule     := Trim(Qry.FieldByName('DEL_RULE').AsString);
+      Inc(Idx);
+      Qry.Next;
+    end;
+  finally
+    Qry.Free;
+  end;
+end;
+
+class function TFBMetaDataExtractor.DropConstraintSQL(const ATableName, AConstraintName: string): string;
+begin
+  Result := Format('ALTER TABLE %s DROP CONSTRAINT %s;', [UpperCase(Trim(ATableName)), UpperCase(Trim(AConstraintName))]);
+end;
+
+class function TFBMetaDataExtractor.AddForeignKeySQL(const ATableName: string; const FK: TForeignKeyDef): string;
+begin
+  Result := Format('ALTER TABLE %s ADD %s;',
+    [UpperCase(Trim(ATableName)), TFBMetaTypeHelper.BuildForeignKeySQL(FK)]);
+end;
+
+class function TFBMetaDataExtractor.AddPrimaryKeySQL(const ATableName, APKName, APKFields: string): string;
+var
+  CName: string;
+begin
+  CName := UpperCase(Trim(APKName));
+  if CName = '' then
+    CName := 'PK_' + UpperCase(Trim(ATableName));
+  Result := Format('ALTER TABLE %s ADD CONSTRAINT %s PRIMARY KEY (%s);',
+    [UpperCase(Trim(ATableName)), CName, UpperCase(Trim(APKFields))]);
 end;
 
 end.

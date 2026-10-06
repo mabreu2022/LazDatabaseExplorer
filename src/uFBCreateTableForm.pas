@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, StrUtils, Forms, Controls, Graphics, Dialogs, StdCtrls,
   ExtCtrls, ComCtrls, Grids, Clipbrd,
-  uFBTypes, uFBConnectionManager, uFBMetaData;
+  uFBTypes, uFBConnectionManager, uFBMetaData, uFBConstraintForm;
 
 type
   { TFBCreateTableForm }
@@ -36,10 +36,11 @@ type
     LabelFKName: TLabel;
     EditFKName: TEdit;
     BtnFKSuggestName: TButton;
-    LabelFKLocalCol: TLabel;
-    ComboFKLocalCol: TComboBox;
     LabelFKRefTable: TLabel;
     ComboFKRefTable: TComboBox;
+    LabelFKLocalCol: TLabel;
+    ComboFKLocalCol: TComboBox;
+    LabelArrow: TLabel;
     LabelFKRefCol: TLabel;
     ComboFKRefCol: TComboBox;
     LabelFKOnUpdate: TLabel;
@@ -50,6 +51,7 @@ type
     BtnFKClear: TButton;
     PanelFKTools: TPanel;
     BtnFKDelete: TButton;
+    BtnOpenConstraintManager: TButton;
     LabelFKHint: TLabel;
     GridFKs: TStringGrid;
 
@@ -80,6 +82,7 @@ type
     procedure BtnFKAddOrUpdateClick(Sender: TObject);
     procedure BtnFKDeleteClick(Sender: TObject);
     procedure BtnFKClearClick(Sender: TObject);
+    procedure BtnOpenConstraintManagerClick(Sender: TObject);
     procedure GridFKsClick(Sender: TObject);
     procedure GridFKsSelection(Sender: TObject; aCol, aRow: Integer);
     procedure BtnExecuteClick(Sender: TObject);
@@ -633,6 +636,17 @@ begin
     ClearFKFields;
     UpdatePreview;
   end;
+end;
+
+procedure TFBCreateTableForm.BtnOpenConstraintManagerClick(Sender: TObject);
+begin
+  if not FBConnManager.IsConnected then
+  begin
+    ShowMessage('Conecte-se a uma base Firebird para abrir o gerenciador de chaves.');
+    Exit;
+  end;
+  TFBConstraintForm.Execute('');
+  PopulateRefTablesCombo;
 end;
 
 function TFBCreateTableForm.GenerateSQL: string;

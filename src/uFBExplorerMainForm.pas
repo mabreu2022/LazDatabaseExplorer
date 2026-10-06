@@ -10,7 +10,7 @@ uses
   // SynEdit
   SynEdit, SynHighlighterSQL,
   // Local units
-  uFBTypes, uFBConnectionManager, uFBMetaData, uFBConnectionDialog, uFBCreateTableForm;
+  uFBTypes, uFBConnectionManager, uFBMetaData, uFBConnectionDialog, uFBCreateTableForm, uFBConstraintForm;
 
 type
   TNodeKind = (nkDatabase, nkTablesGroup, nkTable, nkField, nkViewsGroup, nkView, nkProcsGroup, nkProc, nkTrigsGroup, nkTrig, nkGensGroup, nkGen);
@@ -33,6 +33,7 @@ type
     BtnRunSQL: TButton;
     BtnCommit: TButton;
     BtnRollback: TButton;
+    BtnConstraints: TButton;
 
     PanelClient: TPanel;
     PanelLeft: TPanel;
@@ -62,6 +63,7 @@ type
 
     PopupMenuTree: TPopupMenu;
     MenuItemSelectTop: TMenuItem;
+    MenuItemConstraints: TMenuItem;
     MenuItemSeparator1: TMenuItem;
     MenuItemNewTable: TMenuItem;
     MenuItemDDL: TMenuItem;
@@ -78,6 +80,7 @@ type
     procedure BtnRunSQLClick(Sender: TObject);
     procedure BtnCommitClick(Sender: TObject);
     procedure BtnRollbackClick(Sender: TObject);
+    procedure BtnConstraintsClick(Sender: TObject);
 
     procedure TreeViewMetaSelectionChanged(Sender: TObject);
     procedure TreeViewMetaDblClick(Sender: TObject);
@@ -332,6 +335,21 @@ begin
     RefreshMetaDataTree;
     LogMsg('Nova tabela criada com sucesso.');
   end;
+end;
+
+procedure TFBExplorerMainForm.BtnConstraintsClick(Sender: TObject);
+var
+  Tbl: string;
+begin
+  if not FBConnManager.IsConnected then
+  begin
+    ShowMessage('Conecte-se a uma base Firebird antes de gerenciar chaves.');
+    Exit;
+  end;
+
+  Tbl := GetSelectedTableName;
+  TFBConstraintForm.Execute(Tbl);
+  RefreshMetaDataTree;
 end;
 
 procedure TFBExplorerMainForm.BtnRunSQLClick(Sender: TObject);

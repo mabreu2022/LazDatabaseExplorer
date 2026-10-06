@@ -1,0 +1,521 @@
+object FBConstraintForm: TFBConstraintForm
+  Left = 360
+  Height = 640
+  Top = 120
+  Width = 840
+  Caption = 'Gerenciador de Chaves e Restrições (PK / FK) - Estilo IBExpert'
+  ClientHeight = 640
+  ClientWidth = 840
+  Position = poScreenCenter
+  LCLVersion = '2.2.0.0'
+  OnCreate = FormCreate
+  object PanelTop: TPanel
+    Left = 0
+    Height = 60
+    Top = 0
+    Width = 840
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 60
+    ClientWidth = 840
+    TabOrder = 0
+    object LabelTitle: TLabel
+      Left = 12
+      Height = 16
+      Top = 8
+      Width = 515
+      Caption = '🔑 Gerenciador Visual de Chaves e Integridade Referencial - Estilo IBExpert'
+      Font.Height = 14
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+    object LabelTable: TLabel
+      Left = 12
+      Height = 15
+      Top = 32
+      Width = 105
+      Caption = 'Tabela Selecionada:'
+      ParentColor = False
+    end
+    object ComboTables: TComboBox
+      Left = 125
+      Height = 23
+      Top = 28
+      Width = 260
+      OnChange = ComboTablesChange
+      Style = csDropDownList
+      TabOrder = 0
+    end
+    object BtnRefresh: TButton
+      Left = 395
+      Height = 25
+      Top = 27
+      Width = 110
+      Caption = '🔄 Recarregar'
+      OnClick = BtnRefreshClick
+      TabOrder = 1
+    end
+  end
+  object PageControlMain: TPageControl
+    Left = 0
+    Height = 535
+    Top = 60
+    Width = 840
+    ActivePage = TabSheetFK
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 1
+    object TabSheetFK: TTabSheet
+      Caption = '🔗 Chaves Estrangeiras (Foreign Keys)'
+      ClientHeight = 507
+      ClientWidth = 832
+      object PanelFKExisting: TPanel
+        Left = 0
+        Height = 155
+        Top = 0
+        Width = 832
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 155
+        ClientWidth = 832
+        TabOrder = 0
+        object LabelExistingFKs: TLabel
+          Left = 8
+          Height = 16
+          Top = 4
+          Width = 270
+          Caption = 'Chaves Estrangeiras Existentes nesta Tabela:'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object GridExistingFKs: TStringGrid
+          Left = 0
+          Height = 98
+          Top = 24
+          Width = 832
+          Align = alClient
+          ColCount = 6
+          DefaultRowHeight = 22
+          FixedCols = 0
+          Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
+          RowCount = 1
+          TabOrder = 0
+          OnSelection = GridExistingFKsSelection
+        end
+        object PanelExistingFKTools: TPanel
+          Left = 0
+          Height = 33
+          Top = 122
+          Width = 832
+          Align = alBottom
+          BevelOuter = bvNone
+          ClientHeight = 33
+          ClientWidth = 832
+          TabOrder = 1
+          object BtnNewFK: TButton
+            Left = 6
+            Height = 25
+            Top = 4
+            Width = 165
+            Caption = '+ Nova Chave Estrangeira'
+            OnClick = BtnNewFKClick
+            TabOrder = 0
+          end
+          object BtnDropSelectedFK: TButton
+            Left = 180
+            Height = 25
+            Top = 4
+            Width = 240
+            Caption = '🗑️ Excluir FK Selecionada (DROP)'
+            OnClick = BtnDropSelectedFKClick
+            TabOrder = 1
+          end
+        end
+      end
+      object GroupBoxFKEditor: TGroupBox
+        Left = 0
+        Height = 175
+        Top = 155
+        Width = 832
+        Align = alTop
+        Caption = ' Assistente de Definição de Chave Estrangeira '
+        ClientHeight = 155
+        ClientWidth = 828
+        TabOrder = 1
+        object LabelFKName: TLabel
+          Left = 10
+          Height = 15
+          Top = 8
+          Width = 72
+          Caption = 'Nome da FK:'
+          ParentColor = False
+        end
+        object EditFKName: TEdit
+          Left = 90
+          Height = 23
+          Top = 4
+          Width = 220
+          OnChange = EditFKNameChange
+          TabOrder = 0
+        end
+        object BtnSuggestFKName: TButton
+          Left = 316
+          Height = 25
+          Top = 3
+          Width = 90
+          Caption = '⚡ Sugerir'
+          OnClick = BtnSuggestFKNameClick
+          TabOrder = 1
+        end
+        object LabelRefTable: TLabel
+          Left = 425
+          Height = 15
+          Top = 8
+          Width = 100
+          Caption = 'Tabela de Destino:'
+          ParentColor = False
+        end
+        object ComboRefTable: TComboBox
+          Left = 535
+          Height = 23
+          Top = 4
+          Width = 280
+          OnChange = ComboRefTableChange
+          Style = csDropDownList
+          TabOrder = 2
+        end
+        object GroupBoxMapping: TGroupBox
+          Left = 6
+          Height = 56
+          Top = 34
+          Width = 812
+          Caption = ' Mapeamento Visual de Campos (Local ➔ Referenciado) '
+          ClientHeight = 36
+          ClientWidth = 808
+          TabOrder = 3
+          object LabelLocalField: TLabel
+            Left = 8
+            Height = 15
+            Top = 8
+            Width = 72
+            Caption = 'Campo Local:'
+            ParentColor = False
+          end
+          object ComboLocalField: TComboBox
+            Left = 86
+            Height = 23
+            Top = 4
+            Width = 220
+            OnChange = ComboLocalFieldChange
+            Style = csDropDownList
+            TabOrder = 0
+          end
+          object LabelArrow: TLabel
+            Left = 325
+            Height = 15
+            Top = 8
+            Width = 140
+            Caption = '➔ APONTA PARA ➔'
+            Font.Color = clNavy
+            Font.Style = [fsBold]
+            ParentColor = False
+            ParentFont = False
+          end
+          object LabelRefField: TLabel
+            Left = 480
+            Height = 15
+            Top = 8
+            Width = 100
+            Caption = 'Campo no Destino:'
+            ParentColor = False
+          end
+          object ComboRefField: TComboBox
+            Left = 588
+            Height = 23
+            Top = 4
+            Width = 210
+            OnChange = ComboRefFieldChange
+            Style = csDropDownList
+            TabOrder = 1
+          end
+        end
+        object GroupBoxRules: TGroupBox
+          Left = 6
+          Height = 50
+          Top = 95
+          Width = 812
+          Caption = ' Regras de Integridade Referencial '
+          ClientHeight = 30
+          ClientWidth = 808
+          TabOrder = 4
+          object LabelOnUpdate: TLabel
+            Left = 10
+            Height = 15
+            Top = 6
+            Width = 140
+            Caption = 'Ao Atualizar (ON UPDATE):'
+            ParentColor = False
+          end
+          object ComboOnUpdate: TComboBox
+            Left = 158
+            Height = 23
+            Top = 2
+            Width = 150
+            OnChange = ComboOnUpdateChange
+            Style = csDropDownList
+            TabOrder = 0
+          end
+          object LabelOnDelete: TLabel
+            Left = 345
+            Height = 15
+            Top = 6
+            Width = 135
+            Caption = 'Ao Excluir (ON DELETE):'
+            ParentColor = False
+          end
+          object ComboOnDelete: TComboBox
+            Left = 488
+            Height = 23
+            Top = 2
+            Width = 150
+            OnChange = ComboOnDeleteChange
+            Style = csDropDownList
+            TabOrder = 1
+          end
+        end
+      end
+      object GroupBoxFKDDL: TGroupBox
+        Left = 0
+        Height = 135
+        Top = 330
+        Width = 832
+        Align = alClient
+        Caption = ' Script DDL em Tempo Real (Firebird SQL) '
+        ClientHeight = 115
+        ClientWidth = 828
+        TabOrder = 2
+        object MemoFKDDL: TMemo
+          Left = 0
+          Height = 115
+          Top = 0
+          Width = 828
+          Align = alClient
+          Font.Name = 'Courier New'
+          Font.Pitch = fpFixed
+          ParentFont = False
+          ReadOnly = True
+          ScrollBars = ssAutoBoth
+          TabOrder = 0
+        end
+      end
+      object PanelFKActions: TPanel
+        Left = 0
+        Height = 42
+        Top = 465
+        Width = 832
+        Align = alBottom
+        BevelOuter = bvNone
+        ClientHeight = 42
+        ClientWidth = 832
+        TabOrder = 3
+        object BtnExecuteFK: TButton
+          Left = 8
+          Height = 32
+          Top = 5
+          Width = 280
+          Caption = '🚀 Executar e Criar FK no Banco'
+          Default = True
+          Font.Style = [fsBold]
+          OnClick = BtnExecuteFKClick
+          ParentFont = False
+          TabOrder = 0
+        end
+        object BtnCopyFKDDL: TButton
+          Left = 298
+          Height = 32
+          Top = 5
+          Width = 120
+          Caption = 'Copiar DDL'
+          OnClick = BtnCopyFKDDLClick
+          TabOrder = 1
+        end
+      end
+    end
+    object TabSheetPK: TTabSheet
+      Caption = '🔑 Chave Primária (Primary Key)'
+      ClientHeight = 507
+      ClientWidth = 832
+      object GroupBoxCurrentPK: TGroupBox
+        Left = 0
+        Height = 56
+        Top = 0
+        Width = 832
+        Align = alTop
+        Caption = ' Status da Chave Primária Atual '
+        ClientHeight = 36
+        ClientWidth = 828
+        TabOrder = 0
+        object LabelCurrentPKStatus: TLabel
+          Left = 10
+          Height = 15
+          Top = 8
+          Width = 135
+          Caption = 'Carregando status da PK...'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object BtnDropPK: TButton
+          Left = 525
+          Height = 26
+          Top = 2
+          Width = 290
+          Caption = '🗑️ Remover Chave Primária Atual (DROP)'
+          OnClick = BtnDropPKClick
+          TabOrder = 0
+        end
+      end
+      object GroupBoxNewPK: TGroupBox
+        Left = 0
+        Height = 225
+        Top = 56
+        Width = 832
+        Align = alTop
+        Caption = ' Definir Nova Chave Primária '
+        ClientHeight = 205
+        ClientWidth = 828
+        TabOrder = 1
+        object LabelPKName: TLabel
+          Left = 10
+          Height = 15
+          Top = 10
+          Width = 110
+          Caption = 'Nome da Chave (PK):'
+          ParentColor = False
+        end
+        object EditPKName: TEdit
+          Left = 130
+          Height = 23
+          Top = 6
+          Width = 240
+          OnChange = EditPKNameChange
+          TabOrder = 0
+        end
+        object BtnSuggestPKName: TButton
+          Left = 378
+          Height = 25
+          Top = 5
+          Width = 90
+          Caption = '⚡ Sugerir'
+          OnClick = BtnSuggestPKNameClick
+          TabOrder = 1
+        end
+        object LabelPKFieldsHint: TLabel
+          Left = 10
+          Height = 15
+          Top = 38
+          Width = 475
+          Caption = 'Selecione os campos para compor a PK (marque 1 ou mais para Chave Primária Composta):'
+          ParentColor = False
+        end
+        object CheckListPKFields: TCheckListBox
+          Left = 10
+          Height = 120
+          Top = 58
+          Width = 808
+          ItemHeight = 0
+          OnClickCheck = CheckListPKFieldsClickCheck
+          TabOrder = 2
+        end
+        object LabelPKNote: TLabel
+          Left = 10
+          Height = 15
+          Top = 184
+          Width = 535
+          Caption = 'Nota: No Firebird, todos os campos que compõem a Primary Key devem ter obrigatoriamente NOT NULL.'
+          Font.Color = clGray
+          ParentColor = False
+          ParentFont = False
+        end
+      end
+      object GroupBoxPKDDL: TGroupBox
+        Left = 0
+        Height = 184
+        Top = 281
+        Width = 832
+        Align = alClient
+        Caption = ' Script DDL da Chave Primária '
+        ClientHeight = 164
+        ClientWidth = 828
+        TabOrder = 2
+        object MemoPKDDL: TMemo
+          Left = 0
+          Height = 164
+          Top = 0
+          Width = 828
+          Align = alClient
+          Font.Name = 'Courier New'
+          Font.Pitch = fpFixed
+          ParentFont = False
+          ReadOnly = True
+          ScrollBars = ssAutoBoth
+          TabOrder = 0
+        end
+      end
+      object PanelPKActions: TPanel
+        Left = 0
+        Height = 42
+        Top = 465
+        Width = 832
+        Align = alBottom
+        BevelOuter = bvNone
+        ClientHeight = 42
+        ClientWidth = 832
+        TabOrder = 3
+        object BtnExecutePK: TButton
+          Left = 8
+          Height = 32
+          Top = 5
+          Width = 280
+          Caption = '🚀 Executar e Criar Chave Primária'
+          Font.Style = [fsBold]
+          OnClick = BtnExecutePKClick
+          ParentFont = False
+          TabOrder = 0
+        end
+        object BtnCopyPKDDL: TButton
+          Left = 298
+          Height = 32
+          Top = 5
+          Width = 120
+          Caption = 'Copiar DDL'
+          OnClick = BtnCopyPKDDLClick
+          TabOrder = 1
+        end
+      end
+    end
+  end
+  object PanelBottom: TPanel
+    Left = 0
+    Height = 45
+    Top = 595
+    Width = 840
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 45
+    ClientWidth = 840
+    TabOrder = 2
+    object BtnClose: TButton
+      Left = 735
+      Height = 32
+      Top = 6
+      Width = 95
+      Cancel = True
+      Caption = 'Fechar'
+      ModalResult = 11
+      TabOrder = 0
+    end
+  end
+end

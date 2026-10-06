@@ -44,13 +44,27 @@ Um complemento de IDE (*IDE Package / "OTA" do Lazarus*) e ferramenta completa p
    - Botão para execução direta no banco com transação controlada.
    - Botão para adicionar campos padrão de auditoria (`DATA_CADASTRO`, `ATIVO`, etc.).
 
-5. **Editor SQL e Visualizador de Dados**:
+5. **Gerenciador Visual de Chaves e Restrições (PK / FK) - Estilo IBExpert**:
+   - Disponível pelo menu de contexto da tabela (`🔑 Gerenciar Chaves e FKs (IBExpert)...`), botão na barra de ferramentas e no assistente de tabela.
+   - **Chaves Estrangeiras (FK)**:
+     - Listagem de FKs existentes na tabela lidas diretamente do catálogo Firebird (`RDB$RELATION_CONSTRAINTS`).
+     - Assistente visual de mapeamento de campos: `[Campo Local] ➔ APONTA PARA ➔ [Campo Destino]`.
+     - Seleção de regras referenciais: `ON UPDATE` e `ON DELETE` (`NO ACTION`, `CASCADE`, `SET NULL`, `SET DEFAULT`, `RESTRICT`).
+     - Execução direta com geração de `ALTER TABLE <TABELA> ADD CONSTRAINT ...`.
+     - Exclusão de restrições existentes com confirmação de segurança (`ALTER TABLE ... DROP CONSTRAINT`).
+   - **Chaves Primárias (PK)**:
+     - Leitura da chave primária atual da tabela.
+     - Seleção visual de múltiplos campos com lista de caixas de seleção (`TCheckListBox`) para Chaves Primárias Simples ou Compostas.
+     - Criação (`ALTER TABLE ... ADD CONSTRAINT ... PRIMARY KEY`) e remoção de PK.
+     - Script DDL gerado em tempo real com realce de sintaxe.
+
+6. **Editor SQL e Visualizador de Dados**:
    - Editor de código com realce de sintaxe SQL via `TSynEdit` / `TSynSQLSyn`.
    - Execução de consultas `SELECT` com exibição em grade de dados (`TDBGrid`).
    - Execução de comandos DDL/DML (`CREATE`, `ALTER`, `DROP`, `INSERT`, `UPDATE`, `DELETE`) com relatório de linhas afetadas e tempo de execução (ms).
    - Controle de transação manual: botões **Commit** e **Rollback**.
 
-6. **Ações Rápidas de Tabela**:
+7. **Ações Rápidas de Tabela**:
    - Visualizar primeiros 100 registros com duplo clique.
    - Visualização e engenharia reversa do script DDL (`CREATE TABLE`) da tabela selecionada.
    - Exclusão assistida de tabela (`DROP TABLE`) com confirmação de segurança.
@@ -75,6 +89,8 @@ LazarusDataBaseExplorer/
 │   ├── uFBMetaData.pas            # Leitura de dicionário RDB$ e gerador DDL
 │   ├── uFBCreateTableForm.pas     # Assistente visual para criação de tabelas
 │   ├── uFBCreateTableForm.lfm     # Layout do formulário do assistente
+│   ├── uFBConstraintForm.pas      # Gerenciador visual de chaves PK e FK (estilo IBExpert)
+│   ├── uFBConstraintForm.lfm      # Layout do formulário de chaves
 │   ├── uFBExplorerMainForm.pas    # Janela principal do Explorer
 │   ├── uFBExplorerMainForm.lfm    # Layout da janela principal
 │   └── uFBExplorerRegister.pas    # Registro na IDE (MenuIntf e IDEWindowCreators)

@@ -60,6 +60,14 @@ Includes schema browser, visual table creator wizard, SQL runner and metadata ma
         <Type Value="LFM"/>
       </Item>
       <Item>
+        <Filename Value="src/uFBConstraintForm.pas"/>
+        <UnitName Value="uFBConstraintForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBConstraintForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
         <Filename Value="src/uFBTypes.pas"/>
         <UnitName Value="uFBTypes"/>
       </Item>

@@ -85,6 +85,15 @@ object FBExplorerMainForm: TFBExplorerMainForm
       OnClick = BtnRollbackClick
       TabOrder = 6
     end
+    object BtnConstraints: TButton
+      Left = 786
+      Height = 32
+      Top = 6
+      Width = 140
+      Caption = '🔑 Chaves (PK/FK)'
+      OnClick = BtnConstraintsClick
+      TabOrder = 7
+    end
   end
   object PanelClient: TPanel
     Left = 0
@@ -303,6 +312,10 @@ object FBExplorerMainForm: TFBExplorerMainForm
     object MenuItemSelectTop: TMenuItem
       Caption = 'Visualizar Primeiros 100 Registros'
       OnClick = MenuItemSelectTopClick
+    end
+    object MenuItemConstraints: TMenuItem
+      Caption = '🔑 Gerenciar Chaves e FKs (IBExpert)...'
+      OnClick = BtnConstraintsClick
     end
     object MenuItemSeparator1: TMenuItem
       Caption = '-'

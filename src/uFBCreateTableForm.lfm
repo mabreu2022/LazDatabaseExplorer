@@ -154,7 +154,7 @@ object FBCreateTableForm: TFBCreateTableForm
         Top = 0
         Width = 812
         Align = alTop
-        Caption = ' Definição da Chave Estrangeira (FK) '
+        Caption = ' Definição da Chave Estrangeira (FK) - Estilo IBExpert '
         ClientHeight = 125
         ClientWidth = 808
         TabOrder = 0
@@ -170,17 +170,34 @@ object FBCreateTableForm: TFBCreateTableForm
           Left = 95
           Height = 23
           Top = 8
-          Width = 230
+          Width = 210
           TabOrder = 0
         end
         object BtnFKSuggestName: TButton
-          Left = 332
+          Left = 312
           Height = 25
           Top = 7
-          Width = 110
-          Caption = '⚡ Sugerir Nome'
+          Width = 95
+          Caption = '⚡ Sugerir'
           OnClick = BtnFKSuggestNameClick
           TabOrder = 1
+        end
+        object LabelFKRefTable: TLabel
+          Left = 425
+          Height = 15
+          Top = 12
+          Width = 80
+          Caption = 'Tabela Destino:'
+          ParentColor = False
+        end
+        object ComboFKRefTable: TComboBox
+          Left = 525
+          Height = 23
+          Top = 8
+          Width = 270
+          ItemHeight = 15
+          OnChange = ComboFKRefTableChange
+          TabOrder = 2
         end
         object LabelFKLocalCol: TLabel
           Left = 12
@@ -194,42 +211,36 @@ object FBCreateTableForm: TFBCreateTableForm
           Left = 95
           Height = 23
           Top = 42
-          Width = 150
+          Width = 200
           ItemHeight = 15
           OnChange = ComboFKLocalColChange
           Style = csDropDownList
-          TabOrder = 2
-        end
-        object LabelFKRefTable: TLabel
-          Left = 260
-          Height = 15
-          Top = 46
-          Width = 76
-          Caption = 'Tabela Destino:'
-          ParentColor = False
-        end
-        object ComboFKRefTable: TComboBox
-          Left = 350
-          Height = 23
-          Top = 42
-          Width = 175
-          ItemHeight = 15
-          OnChange = ComboFKRefTableChange
           TabOrder = 3
         end
+        object LabelArrow: TLabel
+          Left = 308
+          Height = 15
+          Top = 45
+          Width = 140
+          Caption = '➔ APONTA PARA ➔'
+          Font.Color = clNavy
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
         object LabelFKRefCol: TLabel
-          Left = 540
+          Left = 460
           Height = 15
           Top = 46
-          Width = 78
+          Width = 82
           Caption = 'Campo Destino:'
           ParentColor = False
         end
         object ComboFKRefCol: TComboBox
-          Left = 635
+          Left = 552
           Height = 23
           Top = 42
-          Width = 145
+          Width = 243
           ItemHeight = 15
           TabOrder = 4
         end
@@ -245,13 +256,13 @@ object FBCreateTableForm: TFBCreateTableForm
           Left = 95
           Height = 23
           Top = 78
-          Width = 145
+          Width = 140
           ItemHeight = 15
           Style = csDropDownList
           TabOrder = 5
         end
         object LabelFKOnDelete: TLabel
-          Left = 260
+          Left = 245
           Height = 15
           Top = 82
           Width = 63
@@ -259,19 +270,19 @@ object FBCreateTableForm: TFBCreateTableForm
           ParentColor = False
         end
         object ComboFKOnDelete: TComboBox
-          Left = 350
+          Left = 320
           Height = 23
           Top = 78
-          Width = 145
+          Width = 140
           ItemHeight = 15
           Style = csDropDownList
           TabOrder = 6
         end
         object BtnFKAddOrUpdate: TButton
-          Left = 515
+          Left = 475
           Height = 28
           Top = 76
-          Width = 180
+          Width = 190
           Caption = '💾 Salvar / Adicionar FK'
           Font.Style = [fsBold]
           OnClick = BtnFKAddOrUpdateClick
@@ -279,10 +290,10 @@ object FBCreateTableForm: TFBCreateTableForm
           TabOrder = 7
         end
         object BtnFKClear: TButton
-          Left = 705
+          Left = 675
           Height = 28
           Top = 76
-          Width = 75
+          Width = 120
           Caption = 'Limpar'
           OnClick = BtnFKClearClick
           TabOrder = 8
@@ -308,14 +319,23 @@ object FBCreateTableForm: TFBCreateTableForm
           TabOrder = 0
         end
         object LabelFKHint: TLabel
-          Left = 205
+          Left = 195
           Height = 15
           Top = 10
-          Width = 460
-          Caption = 'Dica: Clique em uma FK na lista abaixo para carregar nos campos acima ou removê-la.'
+          Width = 330
+          Caption = 'Dica: Clique em uma FK para carregar nos campos ou remover.'
           Font.Color = clGray
           ParentColor = False
           ParentFont = False
+        end
+        object BtnOpenConstraintManager: TButton
+          Left = 540
+          Height = 26
+          Top = 5
+          Width = 255
+          Caption = '🛠️ Gerenciador de Chaves do Banco...'
+          OnClick = BtnOpenConstraintManagerClick
+          TabOrder = 1
         end
       end
       object GridFKs: TStringGrid
