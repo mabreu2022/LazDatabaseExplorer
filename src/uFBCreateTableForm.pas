@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, StrUtils, Forms, Controls, Graphics, Dialogs, StdCtrls,
   ExtCtrls, ComCtrls, Grids, Clipbrd,
-  uFBTypes, uFBConnectionManager;
+  uFBTypes, uFBConnectionManager, uFBMetaData;
 
 type
   { TFBCreateTableForm }
@@ -19,36 +19,81 @@ type
     BtnTemplateAudit: TButton;
 
     PageControlMain: TPageControl;
+
+    { Aba 1: Colunas }
     TabSheetColumns: TTabSheet;
     PanelGridTools: TPanel;
     BtnAddCol: TButton;
     BtnDelCol: TButton;
     BtnMoveUp: TButton;
     BtnMoveDown: TButton;
+    BtnCreateFKForCol: TButton;
     GridColumns: TStringGrid;
 
+    { Aba 2: Chaves Estrangeiras (FK) }
+    TabSheetFK: TTabSheet;
+    GroupBoxFKEdit: TGroupBox;
+    LabelFKName: TLabel;
+    EditFKName: TEdit;
+    BtnFKSuggestName: TButton;
+    LabelFKLocalCol: TLabel;
+    ComboFKLocalCol: TComboBox;
+    LabelFKRefTable: TLabel;
+    ComboFKRefTable: TComboBox;
+    LabelFKRefCol: TLabel;
+    ComboFKRefCol: TComboBox;
+    LabelFKOnUpdate: TLabel;
+    ComboFKOnUpdate: TComboBox;
+    LabelFKOnDelete: TLabel;
+    ComboFKOnDelete: TComboBox;
+    BtnFKAddOrUpdate: TButton;
+    BtnFKClear: TButton;
+    PanelFKTools: TPanel;
+    BtnFKDelete: TButton;
+    LabelFKHint: TLabel;
+    GridFKs: TStringGrid;
+
+    { Aba 3: Script Preview }
     TabSheetPreview: TTabSheet;
     MemoSQLPreview: TMemo;
 
+    { Rodapé }
     PanelBottom: TPanel;
     BtnExecute: TButton;
     BtnCopySQL: TButton;
     BtnClose: TButton;
 
     procedure FormCreate(Sender: TObject);
+    procedure PageControlMainChange(Sender: TObject);
     procedure BtnAddColClick(Sender: TObject);
     procedure BtnDelColClick(Sender: TObject);
     procedure BtnMoveUpClick(Sender: TObject);
     procedure BtnMoveDownClick(Sender: TObject);
+    procedure BtnCreateFKForColClick(Sender: TObject);
     procedure BtnTemplateAuditClick(Sender: TObject);
     procedure EditTableNameChange(Sender: TObject);
     procedure ChkFB3IdentityChange(Sender: TObject);
     procedure GridColumnsEditingDone(Sender: TObject);
+    procedure BtnFKSuggestNameClick(Sender: TObject);
+    procedure ComboFKLocalColChange(Sender: TObject);
+    procedure ComboFKRefTableChange(Sender: TObject);
+    procedure BtnFKAddOrUpdateClick(Sender: TObject);
+    procedure BtnFKDeleteClick(Sender: TObject);
+    procedure BtnFKClearClick(Sender: TObject);
+    procedure GridFKsClick(Sender: TObject);
+    procedure GridFKsSelection(Sender: TObject; aCol, aRow: Integer);
     procedure BtnExecuteClick(Sender: TObject);
     procedure BtnCopySQLClick(Sender: TObject);
   private
     procedure SetupGridHeaders;
+    procedure SetupFKGridHeaders;
     procedure AddColumnRow(const AName, AType, ASize, AScale, ANotNull, APK, AAutoInc, ADefVal: string);
+    procedure PopulateLocalColumnsCombo;
+    procedure PopulateRefTablesCombo;
+    procedure PopulateRefColumnsCombo(const ATableName: string);
+    procedure SuggestFKName;
+    procedure ClearFKFields;
+    procedure LoadFKFromGrid(RowIdx: Integer);
     function GenerateSQL: string;
     procedure UpdatePreview;
   public
@@ -60,6 +105,7 @@ implementation
 {$R *.lfm}
 
 const
+  { Colunas da grade de campos }
   COL_NAME    = 0;
   COL_TYPE    = 1;
   COL_SIZE    = 2;
@@ -69,14 +115,45 @@ const
   COL_AUTOINC = 6;
   COL_DEFVAL  = 7;
 
+  { Colunas da grade de Foreign Keys }
+  FK_COL_NAME     = 0;
+  FK_COL_LOCAL    = 1;
+  FK_COL_REFTBL   = 2;
+  FK_COL_REFCOL   = 3;
+  FK_COL_ONUPDATE = 4;
+  FK_COL_ONDELETE = 5;
+
 { TFBCreateTableForm }
 
 procedure TFBCreateTableForm.FormCreate(Sender: TObject);
 begin
   SetupGridHeaders;
-  // Coluna inicial ID
+  SetupFKGridHeaders;
+
+  // Opções de ON UPDATE e ON DELETE para Firebird
+  ComboFKOnUpdate.Items.Clear;
+  ComboFKOnUpdate.Items.Add('NO ACTION');
+  ComboFKOnUpdate.Items.Add('CASCADE');
+  ComboFKOnUpdate.Items.Add('SET NULL');
+  ComboFKOnUpdate.Items.Add('SET DEFAULT');
+  ComboFKOnUpdate.Items.Add('RESTRICT');
+  ComboFKOnUpdate.ItemIndex := 0;
+
+  ComboFKOnDelete.Items.Clear;
+  ComboFKOnDelete.Items.Add('NO ACTION');
+  ComboFKOnDelete.Items.Add('CASCADE');
+  ComboFKOnDelete.Items.Add('SET NULL');
+  ComboFKOnDelete.Items.Add('SET DEFAULT');
+  ComboFKOnDelete.Items.Add('RESTRICT');
+  ComboFKOnDelete.ItemIndex := 0;
+
+  // Colunas iniciais ID e DESCRICAO
   AddColumnRow('ID', 'BIGINT', '', '', 'SIM', 'SIM', 'SIM', '');
   AddColumnRow('DESCRICAO', 'VARCHAR', '150', '', 'SIM', 'NAO', 'NAO', '');
+
+  PopulateLocalColumnsCombo;
+  PopulateRefTablesCombo;
+
   UpdatePreview;
 end;
 
@@ -102,6 +179,26 @@ begin
   GridColumns.ColWidths[COL_PK]      := 100;
   GridColumns.ColWidths[COL_AUTOINC] := 115;
   GridColumns.ColWidths[COL_DEFVAL]  := 95;
+end;
+
+procedure TFBCreateTableForm.SetupFKGridHeaders;
+begin
+  GridFKs.ColCount := 6;
+  GridFKs.RowCount := 1;
+
+  GridFKs.Cells[FK_COL_NAME, 0]     := 'Nome da FK';
+  GridFKs.Cells[FK_COL_LOCAL, 0]    := 'Campo Local';
+  GridFKs.Cells[FK_COL_REFTBL, 0]   := 'Tabela Destino';
+  GridFKs.Cells[FK_COL_REFCOL, 0]   := 'Campo Destino';
+  GridFKs.Cells[FK_COL_ONUPDATE, 0] := 'ON UPDATE';
+  GridFKs.Cells[FK_COL_ONDELETE, 0] := 'ON DELETE';
+
+  GridFKs.ColWidths[FK_COL_NAME]     := 175;
+  GridFKs.ColWidths[FK_COL_LOCAL]    := 125;
+  GridFKs.ColWidths[FK_COL_REFTBL]   := 145;
+  GridFKs.ColWidths[FK_COL_REFCOL]   := 125;
+  GridFKs.ColWidths[FK_COL_ONUPDATE] := 95;
+  GridFKs.ColWidths[FK_COL_ONDELETE] := 95;
 end;
 
 procedure TFBCreateTableForm.AddColumnRow(const AName, AType, ASize, AScale, ANotNull, APK, AAutoInc, ADefVal: string);
@@ -140,7 +237,6 @@ begin
   end
   else if GridColumns.RowCount = 2 then
   begin
-    // Limpa a única linha
     for I := 0 to GridColumns.ColCount - 1 do
       GridColumns.Cells[I, 1] := '';
     UpdatePreview;
@@ -185,6 +281,27 @@ begin
   end;
 end;
 
+procedure TFBCreateTableForm.BtnCreateFKForColClick(Sender: TObject);
+var
+  R: Integer;
+  ColName: string;
+begin
+  R := GridColumns.Row;
+  if (R > 0) and (R < GridColumns.RowCount) then
+    ColName := UpperCase(Trim(GridColumns.Cells[COL_NAME, R]))
+  else
+    ColName := '';
+
+  PageControlMain.ActivePage := TabSheetFK;
+  PopulateLocalColumnsCombo;
+
+  if ColName <> '' then
+  begin
+    ComboFKLocalCol.Text := ColName;
+    ComboFKLocalColChange(ComboFKLocalCol);
+  end;
+end;
+
 procedure TFBCreateTableForm.BtnTemplateAuditClick(Sender: TObject);
 begin
   AddColumnRow('DATA_CADASTRO', 'TIMESTAMP', '', '', 'SIM', 'NAO', 'NAO', 'CURRENT_TIMESTAMP');
@@ -195,6 +312,8 @@ end;
 
 procedure TFBCreateTableForm.EditTableNameChange(Sender: TObject);
 begin
+  if (EditFKName.Text = '') or StartsText('FK_', EditFKName.Text) then
+    SuggestFKName;
   UpdatePreview;
 end;
 
@@ -208,94 +327,419 @@ begin
   UpdatePreview;
 end;
 
+procedure TFBCreateTableForm.PopulateLocalColumnsCombo;
+var
+  R: Integer;
+  ColName, CurSel: string;
+begin
+  CurSel := ComboFKLocalCol.Text;
+  ComboFKLocalCol.Items.BeginUpdate;
+  try
+    ComboFKLocalCol.Items.Clear;
+    for R := 1 to GridColumns.RowCount - 1 do
+    begin
+      ColName := UpperCase(Trim(GridColumns.Cells[COL_NAME, R]));
+      if ColName <> '' then
+        ComboFKLocalCol.Items.Add(ColName);
+    end;
+  finally
+    ComboFKLocalCol.Items.EndUpdate;
+  end;
+
+  if (CurSel <> '') and (ComboFKLocalCol.Items.IndexOf(CurSel) >= 0) then
+    ComboFKLocalCol.Text := CurSel
+  else if ComboFKLocalCol.Items.Count > 0 then
+    ComboFKLocalCol.ItemIndex := 0;
+end;
+
+procedure TFBCreateTableForm.PopulateRefTablesCombo;
+var
+  CurSel: string;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  CurSel := ComboFKRefTable.Text;
+  ComboFKRefTable.Items.BeginUpdate;
+  try
+    ComboFKRefTable.Items.Clear;
+    TFBMetaDataExtractor.GetTables(ComboFKRefTable.Items, False);
+  finally
+    ComboFKRefTable.Items.EndUpdate;
+  end;
+  if CurSel <> '' then
+    ComboFKRefTable.Text := CurSel;
+end;
+
+procedure TFBCreateTableForm.PopulateRefColumnsCombo(const ATableName: string);
+var
+  PKList: TStringList;
+  Tbl: string;
+begin
+  Tbl := UpperCase(Trim(ATableName));
+  if Tbl = '' then Exit;
+
+  ComboFKRefCol.Items.BeginUpdate;
+  try
+    ComboFKRefCol.Items.Clear;
+    if FBConnManager.IsConnected then
+      TFBMetaDataExtractor.GetTableFieldNames(Tbl, ComboFKRefCol.Items);
+  finally
+    ComboFKRefCol.Items.EndUpdate;
+  end;
+
+  if FBConnManager.IsConnected then
+  begin
+    PKList := TStringList.Create;
+    try
+      TFBMetaDataExtractor.GetPrimaryKeys(Tbl, PKList);
+      if PKList.Count > 0 then
+        ComboFKRefCol.Text := PKList[0]
+      else if ComboFKRefCol.Items.Count > 0 then
+        ComboFKRefCol.ItemIndex := 0
+      else
+        ComboFKRefCol.Text := 'ID';
+    finally
+      PKList.Free;
+    end;
+  end
+  else
+  begin
+    if ComboFKRefCol.Text = '' then
+      ComboFKRefCol.Text := 'ID';
+  end;
+end;
+
+procedure TFBCreateTableForm.SuggestFKName;
+var
+  Tbl, LocalCol, RefTbl, Proposed: string;
+begin
+  Tbl := UpperCase(Trim(EditTableName.Text));
+  if Tbl = '' then Tbl := 'TABELA';
+  LocalCol := UpperCase(Trim(ComboFKLocalCol.Text));
+  RefTbl := UpperCase(Trim(ComboFKRefTable.Text));
+
+  if RefTbl <> '' then
+    Proposed := Format('FK_%s_%s', [Tbl, RefTbl])
+  else if LocalCol <> '' then
+    Proposed := Format('FK_%s_%s', [Tbl, LocalCol])
+  else
+    Proposed := Format('FK_%s_1', [Tbl]);
+
+  // Limite Firebird clássico de 31 caracteres para garantir compatibilidade
+  if Length(Proposed) > 31 then
+    Proposed := Copy(Proposed, 1, 31);
+
+  EditFKName.Text := Proposed;
+end;
+
+procedure TFBCreateTableForm.ClearFKFields;
+begin
+  EditFKName.Text := '';
+  if ComboFKLocalCol.Items.Count > 0 then
+    ComboFKLocalCol.ItemIndex := 0
+  else
+    ComboFKLocalCol.Text := '';
+  ComboFKRefTable.Text := '';
+  ComboFKRefCol.Text := '';
+  ComboFKOnUpdate.ItemIndex := 0;
+  ComboFKOnDelete.ItemIndex := 0;
+end;
+
+procedure TFBCreateTableForm.LoadFKFromGrid(RowIdx: Integer);
+begin
+  if (RowIdx < 1) or (RowIdx >= GridFKs.RowCount) then Exit;
+
+  EditFKName.Text := GridFKs.Cells[FK_COL_NAME, RowIdx];
+  ComboFKLocalCol.Text := GridFKs.Cells[FK_COL_LOCAL, RowIdx];
+  ComboFKRefTable.Text := GridFKs.Cells[FK_COL_REFTBL, RowIdx];
+  PopulateRefColumnsCombo(ComboFKRefTable.Text);
+  ComboFKRefCol.Text := GridFKs.Cells[FK_COL_REFCOL, RowIdx];
+
+  if ComboFKOnUpdate.Items.IndexOf(GridFKs.Cells[FK_COL_ONUPDATE, RowIdx]) >= 0 then
+    ComboFKOnUpdate.Text := GridFKs.Cells[FK_COL_ONUPDATE, RowIdx]
+  else
+    ComboFKOnUpdate.ItemIndex := 0;
+
+  if ComboFKOnDelete.Items.IndexOf(GridFKs.Cells[FK_COL_ONDELETE, RowIdx]) >= 0 then
+    ComboFKOnDelete.Text := GridFKs.Cells[FK_COL_ONDELETE, RowIdx]
+  else
+    ComboFKOnDelete.ItemIndex := 0;
+end;
+
+procedure TFBCreateTableForm.GridFKsClick(Sender: TObject);
+begin
+  if GridFKs.Row > 0 then
+    LoadFKFromGrid(GridFKs.Row);
+end;
+
+procedure TFBCreateTableForm.GridFKsSelection(Sender: TObject; aCol, aRow: Integer);
+begin
+  if aRow > 0 then
+    LoadFKFromGrid(aRow);
+end;
+
+procedure TFBCreateTableForm.PageControlMainChange(Sender: TObject);
+begin
+  if PageControlMain.ActivePage = TabSheetFK then
+  begin
+    PopulateLocalColumnsCombo;
+    if ComboFKRefTable.Items.Count = 0 then
+      PopulateRefTablesCombo;
+    if (EditFKName.Text = '') and (ComboFKLocalCol.Text <> '') then
+      SuggestFKName;
+  end
+  else if PageControlMain.ActivePage = TabSheetPreview then
+    UpdatePreview;
+end;
+
+procedure TFBCreateTableForm.ComboFKLocalColChange(Sender: TObject);
+var
+  ColName, GuessedTbl: string;
+  I: Integer;
+begin
+  ColName := UpperCase(Trim(ComboFKLocalCol.Text));
+  if ColName <> '' then
+  begin
+    GuessedTbl := '';
+    if EndsText('_ID', ColName) then
+      GuessedTbl := Copy(ColName, 1, Length(ColName) - 3)
+    else if StartsText('ID_', ColName) then
+      GuessedTbl := Copy(ColName, 4, Length(ColName))
+    else if StartsText('COD_', ColName) then
+      GuessedTbl := Copy(ColName, 5, Length(ColName))
+    else if EndsText('_COD', ColName) then
+      GuessedTbl := Copy(ColName, 1, Length(ColName) - 4);
+
+    if GuessedTbl <> '' then
+    begin
+      for I := 0 to ComboFKRefTable.Items.Count - 1 do
+      begin
+        if SameText(ComboFKRefTable.Items[I], GuessedTbl) or
+           SameText(ComboFKRefTable.Items[I], GuessedTbl + 'S') or
+           SameText(ComboFKRefTable.Items[I], GuessedTbl + 'ES') then
+        begin
+          ComboFKRefTable.Text := ComboFKRefTable.Items[I];
+          PopulateRefColumnsCombo(ComboFKRefTable.Text);
+          Break;
+        end;
+      end;
+      if (ComboFKRefTable.Text = '') and (GuessedTbl <> '') then
+      begin
+        ComboFKRefTable.Text := GuessedTbl;
+        if ComboFKRefCol.Text = '' then
+          ComboFKRefCol.Text := 'ID';
+      end;
+    end;
+  end;
+  SuggestFKName;
+end;
+
+procedure TFBCreateTableForm.ComboFKRefTableChange(Sender: TObject);
+begin
+  PopulateRefColumnsCombo(ComboFKRefTable.Text);
+  SuggestFKName;
+end;
+
+procedure TFBCreateTableForm.BtnFKSuggestNameClick(Sender: TObject);
+begin
+  SuggestFKName;
+end;
+
+procedure TFBCreateTableForm.BtnFKClearClick(Sender: TObject);
+begin
+  ClearFKFields;
+end;
+
+procedure TFBCreateTableForm.BtnFKAddOrUpdateClick(Sender: TObject);
+var
+  FKName, LocalCol, RefTbl, RefCol, OnUpd, OnDel: string;
+  R, FoundRow: Integer;
+begin
+  FKName := UpperCase(Trim(EditFKName.Text));
+  LocalCol := UpperCase(Trim(ComboFKLocalCol.Text));
+  RefTbl := UpperCase(Trim(ComboFKRefTable.Text));
+  RefCol := UpperCase(Trim(ComboFKRefCol.Text));
+  OnUpd := UpperCase(Trim(ComboFKOnUpdate.Text));
+  OnDel := UpperCase(Trim(ComboFKOnDelete.Text));
+
+  if LocalCol = '' then
+  begin
+    ShowMessage('Selecione ou informe o campo local para a chave estrangeira.');
+    ComboFKLocalCol.SetFocus;
+    Exit;
+  end;
+
+  if RefTbl = '' then
+  begin
+    ShowMessage('Informe a tabela de destino para a chave estrangeira.');
+    ComboFKRefTable.SetFocus;
+    Exit;
+  end;
+
+  if RefCol = '' then
+    RefCol := 'ID';
+
+  if FKName = '' then
+    SuggestFKName;
+  FKName := UpperCase(Trim(EditFKName.Text));
+
+  if OnUpd = '' then OnUpd := 'NO ACTION';
+  if OnDel = '' then OnDel := 'NO ACTION';
+
+  // Verifica se já existe na grade
+  FoundRow := -1;
+  for R := 1 to GridFKs.RowCount - 1 do
+  begin
+    if SameText(Trim(GridFKs.Cells[FK_COL_NAME, R]), FKName) or
+       SameText(Trim(GridFKs.Cells[FK_COL_LOCAL, R]), LocalCol) then
+    begin
+      FoundRow := R;
+      Break;
+    end;
+  end;
+
+  if FoundRow > 0 then
+  begin
+    GridFKs.Cells[FK_COL_NAME, FoundRow]     := FKName;
+    GridFKs.Cells[FK_COL_LOCAL, FoundRow]    := LocalCol;
+    GridFKs.Cells[FK_COL_REFTBL, FoundRow]   := RefTbl;
+    GridFKs.Cells[FK_COL_REFCOL, FoundRow]   := RefCol;
+    GridFKs.Cells[FK_COL_ONUPDATE, FoundRow] := OnUpd;
+    GridFKs.Cells[FK_COL_ONDELETE, FoundRow] := OnDel;
+  end
+  else
+  begin
+    R := GridFKs.RowCount;
+    GridFKs.RowCount := R + 1;
+    GridFKs.Cells[FK_COL_NAME, R]     := FKName;
+    GridFKs.Cells[FK_COL_LOCAL, R]    := LocalCol;
+    GridFKs.Cells[FK_COL_REFTBL, R]   := RefTbl;
+    GridFKs.Cells[FK_COL_REFCOL, R]   := RefCol;
+    GridFKs.Cells[FK_COL_ONUPDATE, R] := OnUpd;
+    GridFKs.Cells[FK_COL_ONDELETE, R] := OnDel;
+  end;
+
+  UpdatePreview;
+  ShowMessage(Format('Chave Estrangeira "%s" salva com sucesso!', [FKName]));
+end;
+
+procedure TFBCreateTableForm.BtnFKDeleteClick(Sender: TObject);
+var
+  R: Integer;
+begin
+  R := GridFKs.Row;
+  if (R > 0) and (GridFKs.RowCount > 1) then
+  begin
+    GridFKs.DeleteRow(R);
+    ClearFKFields;
+    UpdatePreview;
+  end;
+end;
+
 function TFBCreateTableForm.GenerateSQL: string;
 var
   TblName: string;
   R: Integer;
   ColDef: TColumnDef;
-  Cols: array of TColumnDef;
-  Count: Integer;
   PKList: string;
   ColSQL: string;
   GenSQL: string;
+  Lines: TStringList;
+  FKDef: TForeignKeyDef;
+  I: Integer;
 begin
   TblName := UpperCase(Trim(EditTableName.Text));
   if TblName = '' then
     TblName := 'NOVA_TABELA';
 
-  SetLength(Cols, GridColumns.RowCount - 1);
-  Count := 0;
-  PKList := '';
+  Lines := TStringList.Create;
+  try
+    PKList := '';
+    GenSQL := '';
 
-  for R := 1 to GridColumns.RowCount - 1 do
-  begin
-    if Trim(GridColumns.Cells[COL_NAME, R]) = '' then Continue;
-
-    ColDef.Name := UpperCase(Trim(GridColumns.Cells[COL_NAME, R]));
-    ColDef.DataType := UpperCase(Trim(GridColumns.Cells[COL_TYPE, R]));
-    ColDef.Size := StrToIntDef(Trim(GridColumns.Cells[COL_SIZE, R]), 0);
-    ColDef.Scale := StrToIntDef(Trim(GridColumns.Cells[COL_SCALE, R]), 0);
-    ColDef.NotNull := SameText(Trim(GridColumns.Cells[COL_NOTNULL, R]), 'SIM') or
-                      SameText(Trim(GridColumns.Cells[COL_NOTNULL, R]), 'S') or
-                      SameText(Trim(GridColumns.Cells[COL_NOTNULL, R]), 'TRUE');
-    ColDef.PrimaryKey := SameText(Trim(GridColumns.Cells[COL_PK, R]), 'SIM') or
-                         SameText(Trim(GridColumns.Cells[COL_PK, R]), 'S') or
-                         SameText(Trim(GridColumns.Cells[COL_PK, R]), 'TRUE');
-    ColDef.AutoIncrement := SameText(Trim(GridColumns.Cells[COL_AUTOINC, R]), 'SIM') or
-                            SameText(Trim(GridColumns.Cells[COL_AUTOINC, R]), 'S') or
-                            SameText(Trim(GridColumns.Cells[COL_AUTOINC, R]), 'TRUE');
-    ColDef.DefaultValue := Trim(GridColumns.Cells[COL_DEFVAL, R]);
-
-    Cols[Count] := ColDef;
-    Inc(Count);
-  end;
-
-  SetLength(Cols, Count);
-
-  Result := 'CREATE TABLE ' + TblName + ' (' + LineEnding;
-
-  GenSQL := '';
-  for R := 0 to Count - 1 do
-  begin
-    ColSQL := '  ' + TFBMetaTypeHelper.BuildColumnSQL(Cols[R], ChkFB3Identity.Checked);
-
-    if Cols[R].PrimaryKey then
+    for R := 1 to GridColumns.RowCount - 1 do
     begin
-      if PKList <> '' then PKList := PKList + ', ';
-      PKList := PKList + Cols[R].Name;
+      if Trim(GridColumns.Cells[COL_NAME, R]) = '' then Continue;
+
+      ColDef.Name := UpperCase(Trim(GridColumns.Cells[COL_NAME, R]));
+      ColDef.DataType := UpperCase(Trim(GridColumns.Cells[COL_TYPE, R]));
+      ColDef.Size := StrToIntDef(Trim(GridColumns.Cells[COL_SIZE, R]), 0);
+      ColDef.Scale := StrToIntDef(Trim(GridColumns.Cells[COL_SCALE, R]), 0);
+      ColDef.NotNull := SameText(Trim(GridColumns.Cells[COL_NOTNULL, R]), 'SIM') or
+                        SameText(Trim(GridColumns.Cells[COL_NOTNULL, R]), 'S') or
+                        SameText(Trim(GridColumns.Cells[COL_NOTNULL, R]), 'TRUE');
+      ColDef.PrimaryKey := SameText(Trim(GridColumns.Cells[COL_PK, R]), 'SIM') or
+                           SameText(Trim(GridColumns.Cells[COL_PK, R]), 'S') or
+                           SameText(Trim(GridColumns.Cells[COL_PK, R]), 'TRUE');
+      ColDef.AutoIncrement := SameText(Trim(GridColumns.Cells[COL_AUTOINC, R]), 'SIM') or
+                              SameText(Trim(GridColumns.Cells[COL_AUTOINC, R]), 'S') or
+                              SameText(Trim(GridColumns.Cells[COL_AUTOINC, R]), 'TRUE');
+      ColDef.DefaultValue := Trim(GridColumns.Cells[COL_DEFVAL, R]);
+
+      ColSQL := '  ' + TFBMetaTypeHelper.BuildColumnSQL(ColDef, ChkFB3Identity.Checked);
+      Lines.Add(ColSQL);
+
+      if ColDef.PrimaryKey then
+      begin
+        if PKList <> '' then PKList := PKList + ', ';
+        PKList := PKList + ColDef.Name;
+      end;
+
+      // Se FB 2.5 e AutoIncrement, cria generator + trigger no script
+      if ColDef.AutoIncrement and (not ChkFB3Identity.Checked) then
+      begin
+        GenSQL := GenSQL + LineEnding +
+          Format('CREATE SEQUENCE GEN_%s_%s;' + LineEnding, [TblName, ColDef.Name]) +
+          Format('SET TERM ^ ;' + LineEnding +
+                 'CREATE TRIGGER TR_%s_BI FOR %s' + LineEnding +
+                 'ACTIVE BEFORE INSERT POSITION 0 AS' + LineEnding +
+                 'BEGIN' + LineEnding +
+                 '  IF (NEW.%s IS NULL) THEN' + LineEnding +
+                 '    NEW.%s = GEN_ID(GEN_%s_%s, 1);' + LineEnding +
+                 'END ^' + LineEnding +
+                 'SET TERM ; ^' + LineEnding,
+                 [TblName, TblName, ColDef.Name, ColDef.Name, TblName, ColDef.Name]);
+      end;
     end;
 
-    // Se FB 2.5 e AutoIncrement, cria generator + trigger no script
-    if Cols[R].AutoIncrement and (not ChkFB3Identity.Checked) then
+    // Constraint de Chave Primária
+    if PKList <> '' then
+      Lines.Add(Format('  CONSTRAINT PK_%s PRIMARY KEY (%s)', [TblName, PKList]));
+
+    // Constraints de Chave Estrangeira (FKs)
+    for R := 1 to GridFKs.RowCount - 1 do
     begin
-      GenSQL := GenSQL + LineEnding +
-        Format('CREATE SEQUENCE GEN_%s_%s;' + LineEnding, [TblName, Cols[R].Name]) +
-        Format('SET TERM ^ ;' + LineEnding +
-               'CREATE TRIGGER TR_%s_BI FOR %s' + LineEnding +
-               'ACTIVE BEFORE INSERT POSITION 0 AS' + LineEnding +
-               'BEGIN' + LineEnding +
-               '  IF (NEW.%s IS NULL) THEN' + LineEnding +
-               '    NEW.%s = GEN_ID(GEN_%s_%s, 1);' + LineEnding +
-               'END ^' + LineEnding +
-               'SET TERM ; ^' + LineEnding,
-               [TblName, TblName, Cols[R].Name, Cols[R].Name, TblName, Cols[R].Name]);
+      FKDef.ConstraintName := UpperCase(Trim(GridFKs.Cells[FK_COL_NAME, R]));
+      FKDef.ColumnName := UpperCase(Trim(GridFKs.Cells[FK_COL_LOCAL, R]));
+      FKDef.RefTable := UpperCase(Trim(GridFKs.Cells[FK_COL_REFTBL, R]));
+      FKDef.RefColumn := UpperCase(Trim(GridFKs.Cells[FK_COL_REFCOL, R]));
+      FKDef.OnUpdate := UpperCase(Trim(GridFKs.Cells[FK_COL_ONUPDATE, R]));
+      FKDef.OnDelete := UpperCase(Trim(GridFKs.Cells[FK_COL_ONDELETE, R]));
+
+      if (FKDef.ColumnName <> '') and (FKDef.RefTable <> '') then
+      begin
+        if FKDef.RefColumn = '' then FKDef.RefColumn := 'ID';
+        if FKDef.ConstraintName = '' then
+          FKDef.ConstraintName := Format('FK_%s_%s', [TblName, FKDef.ColumnName]);
+
+        Lines.Add('  ' + TFBMetaTypeHelper.BuildForeignKeySQL(FKDef));
+      end;
     end;
 
-    if (R < Count - 1) or (PKList <> '') then
-      Result := Result + ColSQL + ',' + LineEnding
-    else
-      Result := Result + ColSQL + LineEnding;
+    Result := 'CREATE TABLE ' + TblName + ' (' + LineEnding;
+    for I := 0 to Lines.Count - 1 do
+    begin
+      if I < Lines.Count - 1 then
+        Result := Result + Lines[I] + ',' + LineEnding
+      else
+        Result := Result + Lines[I] + LineEnding;
+    end;
+    Result := Result + ');';
+
+    if GenSQL <> '' then
+      Result := Result + LineEnding + GenSQL;
+  finally
+    Lines.Free;
   end;
-
-  if PKList <> '' then
-  begin
-    Result := Result + Format('  CONSTRAINT PK_%s PRIMARY KEY (%s)' + LineEnding, [TblName, PKList]);
-  end;
-
-  Result := Result + ');';
-
-  if GenSQL <> '' then
-    Result := Result + LineEnding + GenSQL;
 end;
 
 procedure TFBCreateTableForm.UpdatePreview;
@@ -329,7 +773,6 @@ begin
   Screen.Cursor := crHourGlass;
   try
     try
-      // Se tiver ';' no final da criação da tabela, retira se for single statement
       if EndsText(';', Sql) then
         Sql := Copy(Sql, 1, Length(Sql) - 1);
 

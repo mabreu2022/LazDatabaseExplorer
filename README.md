@@ -34,6 +34,12 @@ Um complemento de IDE (*IDE Package / "OTA" do Lazarus*) e ferramenta completa p
      - Chave primária (`PRIMARY KEY`)
      - Auto Incremento / Identidade (`IDENTITY` para Firebird 3.0+ ou generator para Firebird 2.5)
      - Valor padrão (`DEFAULT`)
+   - **Gestor Completo de Chaves Estrangeiras (Foreign Keys / FK)**:
+     - Aba dedicada para configuração e listagem de FKs.
+     - Botão de atalho na grade de colunas: `🔗 Criar FK deste Campo`.
+     - Sugestão inteligente de nomes de constraint (`FK_<TABELA>_<CAMPO>`).
+     - Detecção automática de tabela referenciada e chave primária a partir do catálogo do banco.
+     - Suporte a regras de integridade referencial: `ON UPDATE` e `ON DELETE` (`NO ACTION`, `CASCADE`, `SET NULL`, `SET DEFAULT`, `RESTRICT`).
    - Visualização do comando SQL `CREATE TABLE` gerado em tempo real.
    - Botão para execução direta no banco com transação controlada.
    - Botão para adicionar campos padrão de auditoria (`DATA_CADASTRO`, `ATIVO`, etc.).

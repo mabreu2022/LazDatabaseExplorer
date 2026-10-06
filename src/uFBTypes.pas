@@ -35,17 +35,49 @@ type
 
   TColumnDefArray = array of TColumnDef;
 
+  { Foreign Key definition for Table Designer }
+  TForeignKeyDef = record
+    ConstraintName: string;
+    ColumnName: string;     // Local column
+    RefTable: string;       // Foreign table
+    RefColumn: string;      // Foreign column
+    OnUpdate: string;       // NO ACTION, CASCADE, SET NULL, SET DEFAULT, RESTRICT
+    OnDelete: string;       // NO ACTION, CASCADE, SET NULL, SET DEFAULT, RESTRICT
+  end;
+
+  TForeignKeyDefArray = array of TForeignKeyDef;
+
   { Helper for Firebird Types }
   TFBMetaTypeHelper = class
   public
     class function FirebirdTypeToString(FieldType, FieldSubType, FieldLength, FieldScale: Integer): string;
     class function BuildColumnSQL(const Col: TColumnDef; FirebirdVersion3Plus: Boolean = True): string;
+    class function BuildForeignKeySQL(const FK: TForeignKeyDef): string;
     class function DefaultConfig: TFBConnectionConfig;
   end;
 
 implementation
 
 { TFBMetaTypeHelper }
+
+class function TFBMetaTypeHelper.BuildForeignKeySQL(const FK: TForeignKeyDef): string;
+var
+  CName: string;
+begin
+  CName := Trim(FK.ConstraintName);
+  Result := '';
+  if CName <> '' then
+    Result := 'CONSTRAINT ' + CName + ' ';
+
+  Result := Result + Format('FOREIGN KEY (%s) REFERENCES %s (%s)',
+    [Trim(FK.ColumnName), Trim(FK.RefTable), Trim(FK.RefColumn)]);
+
+  if (Trim(FK.OnUpdate) <> '') and not SameText(Trim(FK.OnUpdate), 'NO ACTION') then
+    Result := Result + ' ON UPDATE ' + UpperCase(Trim(FK.OnUpdate));
+
+  if (Trim(FK.OnDelete) <> '') and not SameText(Trim(FK.OnDelete), 'NO ACTION') then
+    Result := Result + ' ON DELETE ' + UpperCase(Trim(FK.OnDelete));
+end;
 
 class function TFBMetaTypeHelper.DefaultConfig: TFBConnectionConfig;
 begin

@@ -34,6 +34,7 @@ type
     class procedure GetGenerators(List: TStrings);
     class function GetTableFields(const ATableName: string): TFBMetaFieldList;
     class procedure GetPrimaryKeys(const ATableName: string; List: TStrings);
+    class procedure GetTableFieldNames(const ATableName: string; List: TStrings);
 
     { DDL Generators }
     class function GenerateCreateTableDDL(const ATableName: string): string;
@@ -207,6 +208,37 @@ begin
     while not Qry.EOF do
     begin
       List.Add(Trim(Qry.FieldByName('PK_FIELD').AsString));
+      Qry.Next;
+    end;
+  finally
+    Qry.Free;
+  end;
+end;
+
+class procedure TFBMetaDataExtractor.GetTableFieldNames(const ATableName: string; List: TStrings);
+var
+  Qry: TSQLQuery;
+  Sql: string;
+begin
+  List.Clear;
+  if not FBConnManager.IsConnected then Exit;
+
+  Qry := TSQLQuery.Create(nil);
+  try
+    Sql := 'SELECT TRIM(RF.RDB$FIELD_NAME) AS FLD_NAME ' +
+           'FROM RDB$RELATION_FIELDS RF ' +
+           'WHERE TRIM(RF.RDB$RELATION_NAME) = :TBL ' +
+           'ORDER BY RF.RDB$FIELD_POSITION;';
+
+    Qry.DataBase := FBConnManager.Connection;
+    Qry.Transaction := FBConnManager.Transaction;
+    Qry.SQL.Text := Sql;
+    Qry.ParamByName('TBL').AsString := UpperCase(Trim(ATableName));
+    Qry.Open;
+
+    while not Qry.EOF do
+    begin
+      List.Add(Trim(Qry.FieldByName('FLD_NAME').AsString));
       Qry.Next;
     end;
   finally
