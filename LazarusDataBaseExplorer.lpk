@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <Name Value="LazarusDataBaseExplorer"/>
+    <Type Value="DesignTime"/>
+    <Author Value="Antigravity"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <IncludeFiles Value="src"/>
+        <OtherUnitFiles Value="src"/>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="ObjFPC"/>
+        </SyntaxOptions>
+      </Parsing>
+    </CompilerOptions>
+    <Description Value="Firebird Database Explorer for Lazarus IDE.
+Includes schema browser, visual table creator wizard, SQL runner and metadata manager."/>
+    <License Value="MIT"/>
+    <Version Major="1" Minor="0" Release="0"/>
+    <Files>
+      <Item>
+        <Filename Value="src/uFBExplorerRegister.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="uFBExplorerRegister"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBExplorerMainForm.pas"/>
+        <UnitName Value="uFBExplorerMainForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBExplorerMainForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBConnectionManager.pas"/>
+        <UnitName Value="uFBConnectionManager"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBMetaData.pas"/>
+        <UnitName Value="uFBMetaData"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBConnectionDialog.pas"/>
+        <UnitName Value="uFBConnectionDialog"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBConnectionDialog.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBCreateTableForm.pas"/>
+        <UnitName Value="uFBCreateTableForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBCreateTableForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBTypes.pas"/>
+        <UnitName Value="uFBTypes"/>
+      </Item>
+    </Files>
+    <RequiredPkgs>
+      <Item>
+        <PackageName Value="IDEIntf"/>
+      </Item>
+      <Item>
+        <PackageName Value="SQLDBLaz"/>
+      </Item>
+      <Item>
+        <PackageName Value="SynEdit"/>
+      </Item>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
+      <Item>
+        <PackageName Value="FCL"/>
+      </Item>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

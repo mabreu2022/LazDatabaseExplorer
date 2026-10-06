@@ -1,0 +1,23 @@
+# Free Pascal & Lazarus
+lib/
+bin/
+backup/
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.ppu
+*.a
+*.or
+*.obj
+*.compiled
+*.bak
+*.old
+*.~*
+*.lps
+
+# User config & databases
+*.fdb
+*.gdb
+*.ini
