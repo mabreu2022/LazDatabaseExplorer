@@ -86,6 +86,14 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="uFBConstraintForm"/>
       </Unit7>
+      <Unit8>
+        <Filename Value="src/uFBAlterFieldForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FBAlterFieldForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="uFBAlterFieldForm"/>
+      </Unit8>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -21,3 +21,4 @@ backup/
 *.fdb
 *.gdb
 *.ini
+packagefiles.xml

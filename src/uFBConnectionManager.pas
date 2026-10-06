@@ -51,8 +51,31 @@ type
     property ConfigFile: string read FConfigFile write FConfigFile;
   end;
 
+  { TFBMultiConnectionManager }
+  TFBMultiConnectionManager = class
+  private
+    FConnections: TFPList;
+    FActiveManager: TFBConnectionManager;
+    function GetCount: Integer;
+    function GetConnection(Index: Integer): TFBConnectionManager;
+    procedure SetActive(AManager: TFBConnectionManager);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function CreateConnection(const AConfig: TFBConnectionConfig): TFBConnectionManager;
+    procedure AddExisting(AManager: TFBConnectionManager);
+    procedure RemoveConnection(AManager: TFBConnectionManager; AFreeInstance: Boolean = True);
+    function FindByDatabasePath(const ADbPath: string): TFBConnectionManager;
+
+    property Count: Integer read GetCount;
+    property Items[Index: Integer]: TFBConnectionManager read GetConnection; default;
+    property Active: TFBConnectionManager read FActiveManager write SetActive;
+  end;
+
 var
   FBConnManager: TFBConnectionManager;
+  FBMultiManager: TFBMultiConnectionManager;
 
 implementation
 
@@ -386,10 +409,110 @@ begin
   end;
 end;
 
+{ TFBMultiConnectionManager }
+
+constructor TFBMultiConnectionManager.Create;
+begin
+  inherited Create;
+  FConnections := TFPList.Create;
+  FActiveManager := nil;
+end;
+
+destructor TFBMultiConnectionManager.Destroy;
+var
+  I: Integer;
+  M: TFBConnectionManager;
+begin
+  for I := FConnections.Count - 1 downto 0 do
+  begin
+    M := TFBConnectionManager(FConnections[I]);
+    M.Free;
+  end;
+  FreeAndNil(FConnections);
+  inherited Destroy;
+end;
+
+function TFBMultiConnectionManager.GetCount: Integer;
+begin
+  Result := FConnections.Count;
+end;
+
+function TFBMultiConnectionManager.GetConnection(Index: Integer): TFBConnectionManager;
+begin
+  if (Index >= 0) and (Index < FConnections.Count) then
+    Result := TFBConnectionManager(FConnections[Index])
+  else
+    Result := nil;
+end;
+
+procedure TFBMultiConnectionManager.SetActive(AManager: TFBConnectionManager);
+begin
+  FActiveManager := AManager;
+  if AManager <> nil then
+    FBConnManager := AManager;
+end;
+
+function TFBMultiConnectionManager.CreateConnection(const AConfig: TFBConnectionConfig): TFBConnectionManager;
+begin
+  Result := TFBConnectionManager.Create;
+  Result.FConfig := AConfig;
+  FConnections.Add(Result);
+  SetActive(Result);
+end;
+
+procedure TFBMultiConnectionManager.AddExisting(AManager: TFBConnectionManager);
+begin
+  if (AManager <> nil) and (FConnections.IndexOf(AManager) < 0) then
+  begin
+    FConnections.Add(AManager);
+    if FActiveManager = nil then
+      SetActive(AManager);
+  end;
+end;
+
+procedure TFBMultiConnectionManager.RemoveConnection(AManager: TFBConnectionManager; AFreeInstance: Boolean);
+var
+  Idx: Integer;
+begin
+  Idx := FConnections.IndexOf(AManager);
+  if Idx >= 0 then
+  begin
+    FConnections.Delete(Idx);
+    if FActiveManager = AManager then
+    begin
+      if FConnections.Count > 0 then
+        SetActive(TFBConnectionManager(FConnections[0]))
+      else
+        SetActive(nil);
+    end;
+    if AFreeInstance then
+      AManager.Free;
+  end;
+end;
+
+function TFBMultiConnectionManager.FindByDatabasePath(const ADbPath: string): TFBConnectionManager;
+var
+  I: Integer;
+  M: TFBConnectionManager;
+begin
+  Result := nil;
+  for I := 0 to FConnections.Count - 1 do
+  begin
+    M := TFBConnectionManager(FConnections[I]);
+    if SameText(M.CurrentConfig.DatabasePath, ADbPath) then
+    begin
+      Result := M;
+      Exit;
+    end;
+  end;
+end;
+
 initialization
+  FBMultiManager := TFBMultiConnectionManager.Create;
   FBConnManager := TFBConnectionManager.Create;
+  FBMultiManager.AddExisting(FBConnManager);
 
 finalization
-  FreeAndNil(FBConnManager);
+  FreeAndNil(FBMultiManager);
 
 end.

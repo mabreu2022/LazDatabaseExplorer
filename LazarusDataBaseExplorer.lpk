@@ -68,6 +68,14 @@ Includes schema browser, visual table creator wizard, SQL runner and metadata ma
         <Type Value="LFM"/>
       </Item>
       <Item>
+        <Filename Value="src/uFBAlterFieldForm.pas"/>
+        <UnitName Value="uFBAlterFieldForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBAlterFieldForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
         <Filename Value="src/uFBTypes.pas"/>
         <UnitName Value="uFBTypes"/>
       </Item>

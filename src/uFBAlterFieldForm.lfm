@@ -1,0 +1,374 @@
+object FBAlterFieldForm: TFBAlterFieldForm
+  Left = 400
+  Height = 490
+  Top = 180
+  Width = 680
+  Caption = 'Assistente de Alteração de Campos - Firebird (ALTER TABLE)'
+  ClientHeight = 490
+  ClientWidth = 680
+  Position = poScreenCenter
+  LCLVersion = '2.2.0.0'
+  OnCreate = FormCreate
+  object PanelTop: TPanel
+    Left = 0
+    Height = 90
+    Top = 0
+    Width = 680
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 90
+    ClientWidth = 680
+    TabOrder = 0
+    object LabelTable: TLabel
+      Left = 12
+      Height = 16
+      Top = 8
+      Width = 145
+      Caption = 'Tabela: (Nenhuma)'
+      Font.Height = 13
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+    object RadioGroupOperation: TRadioGroup
+      Left = 10
+      Height = 55
+      Top = 28
+      Width = 660
+      AutoFill = True
+      Caption = ' Operação Desejada '
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 4
+      ClientHeight = 35
+      ClientWidth = 656
+      Columns = 4
+      ItemIndex = 0
+      Items.Strings = (
+        '➕ Adicionar'
+        '✏️ Alterar Tipo'
+        '🔤 Renomear'
+        '🗑️ Excluir'
+      )
+      OnClick = RadioGroupOperationClick
+      TabOrder = 0
+    end
+  end
+  object PageControlOps: TPageControl
+    Left = 0
+    Height = 150
+    Top = 90
+    Width = 680
+    ActivePage = TabSheetAdd
+    Align = alTop
+    TabIndex = 0
+    TabOrder = 1
+    object TabSheetAdd: TTabSheet
+      Caption = 'Adicionar'
+      ClientHeight = 122
+      ClientWidth = 672
+      object LabelAddName: TLabel
+        Left = 12
+        Height = 15
+        Top = 14
+        Width = 92
+        Caption = 'Nome do Campo:'
+        ParentColor = False
+      end
+      object EditAddName: TEdit
+        Left = 115
+        Height = 23
+        Top = 10
+        Width = 190
+        OnChange = FieldParamChange
+        TabOrder = 0
+      end
+      object LabelAddType: TLabel
+        Left = 325
+        Height = 15
+        Top = 14
+        Width = 26
+        Caption = 'Tipo:'
+        ParentColor = False
+      end
+      object ComboAddType: TComboBox
+        Left = 360
+        Height = 23
+        Top = 10
+        Width = 160
+        OnChange = FieldParamChange
+        Style = csDropDownList
+        TabOrder = 1
+      end
+      object LabelAddSize: TLabel
+        Left = 12
+        Height = 15
+        Top = 50
+        Width = 52
+        Caption = 'Tamanho:'
+        ParentColor = False
+      end
+      object EditAddSize: TEdit
+        Left = 115
+        Height = 23
+        Top = 46
+        Width = 80
+        OnChange = FieldParamChange
+        TabOrder = 2
+      end
+      object LabelAddScale: TLabel
+        Left = 210
+        Height = 15
+        Top = 50
+        Width = 51
+        Caption = 'Decimais:'
+        ParentColor = False
+      end
+      object EditAddScale: TEdit
+        Left = 268
+        Height = 23
+        Top = 46
+        Width = 60
+        OnChange = FieldParamChange
+        TabOrder = 3
+      end
+      object ChkAddNotNull: TCheckBox
+        Left = 360
+        Height = 19
+        Top = 48
+        Width = 145
+        Caption = 'Não Nulo (NOT NULL)'
+        OnChange = FieldParamChange
+        TabOrder = 4
+      end
+      object LabelAddDefault: TLabel
+        Left = 12
+        Height = 15
+        Top = 86
+        Width = 70
+        Caption = 'Valor Padrão:'
+        ParentColor = False
+      end
+      object EditAddDefault: TEdit
+        Left = 115
+        Height = 23
+        Top = 82
+        Width = 190
+        OnChange = FieldParamChange
+        TabOrder = 5
+      end
+    end
+    object TabSheetAlterType: TTabSheet
+      Caption = 'Alterar Tipo'
+      ClientHeight = 122
+      ClientWidth = 672
+      object LabelAlterField: TLabel
+        Left = 12
+        Height = 15
+        Top = 16
+        Width = 42
+        Caption = 'Campo:'
+        ParentColor = False
+      end
+      object ComboAlterField: TComboBox
+        Left = 115
+        Height = 23
+        Top = 12
+        Width = 190
+        OnChange = FieldParamChange
+        Style = csDropDownList
+        TabOrder = 0
+      end
+      object LabelAlterNewType: TLabel
+        Left = 325
+        Height = 15
+        Top = 16
+        Width = 58
+        Caption = 'Novo Tipo:'
+        ParentColor = False
+      end
+      object ComboAlterNewType: TComboBox
+        Left = 390
+        Height = 23
+        Top = 12
+        Width = 160
+        OnChange = FieldParamChange
+        Style = csDropDownList
+        TabOrder = 1
+      end
+      object LabelAlterNewSize: TLabel
+        Left = 12
+        Height = 15
+        Top = 52
+        Width = 84
+        Caption = 'Novo Tamanho:'
+        ParentColor = False
+      end
+      object EditAlterNewSize: TEdit
+        Left = 115
+        Height = 23
+        Top = 48
+        Width = 80
+        OnChange = FieldParamChange
+        TabOrder = 2
+      end
+      object LabelAlterNewScale: TLabel
+        Left = 210
+        Height = 15
+        Top = 52
+        Width = 83
+        Caption = 'Novos Decimais:'
+        ParentColor = False
+      end
+      object EditAlterNewScale: TEdit
+        Left = 300
+        Height = 23
+        Top = 48
+        Width = 60
+        OnChange = FieldParamChange
+        TabOrder = 3
+      end
+    end
+    object TabSheetRename: TTabSheet
+      Caption = 'Renomear'
+      ClientHeight = 122
+      ClientWidth = 672
+      object LabelRenameField: TLabel
+        Left = 12
+        Height = 15
+        Top = 18
+        Width = 73
+        Caption = 'Campo Atual:'
+        ParentColor = False
+      end
+      object ComboRenameField: TComboBox
+        Left = 115
+        Height = 23
+        Top = 14
+        Width = 220
+        OnChange = FieldParamChange
+        Style = csDropDownList
+        TabOrder = 0
+      end
+      object LabelRenameNewName: TLabel
+        Left = 12
+        Height = 15
+        Top = 56
+        Width = 68
+        Caption = 'Novo Nome:'
+        ParentColor = False
+      end
+      object EditRenameNewName: TEdit
+        Left = 115
+        Height = 23
+        Top = 52
+        Width = 220
+        OnChange = FieldParamChange
+        TabOrder = 1
+      end
+    end
+    object TabSheetDrop: TTabSheet
+      Caption = 'Excluir'
+      ClientHeight = 122
+      ClientWidth = 672
+      object LabelDropField: TLabel
+        Left = 12
+        Height = 15
+        Top = 18
+        Width = 89
+        Caption = 'Campo a Excluir:'
+        ParentColor = False
+      end
+      object ComboDropField: TComboBox
+        Left = 115
+        Height = 23
+        Top = 14
+        Width = 220
+        OnChange = FieldParamChange
+        Style = csDropDownList
+        TabOrder = 0
+      end
+      object LabelDropWarning: TLabel
+        Left = 12
+        Height = 15
+        Top = 54
+        Width = 575
+        Caption = 'Atenção: A exclusão de um campo apagará todos os dados armazenados nele de forma definitiva!'
+        Font.Color = clRed
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+    end
+  end
+  object GroupBoxDDL: TGroupBox
+    Left = 0
+    Height = 195
+    Top = 240
+    Width = 680
+    Align = alClient
+    Caption = ' Comando DDL Gerado '
+    ClientHeight = 175
+    ClientWidth = 676
+    TabOrder = 2
+    object MemoDDL: TMemo
+      Left = 0
+      Height = 175
+      Top = 0
+      Width = 676
+      Align = alClient
+      Font.Name = 'Courier New'
+      Font.Pitch = fpFixed
+      ParentFont = False
+      ReadOnly = True
+      ScrollBars = ssAutoBoth
+      TabOrder = 0
+    end
+  end
+  object PanelBottom: TPanel
+    Left = 0
+    Height = 55
+    Top = 435
+    Width = 680
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 55
+    ClientWidth = 680
+    TabOrder = 3
+    object BtnExecute: TButton
+      Left = 12
+      Height = 35
+      Top = 10
+      Width = 230
+      Caption = '🚀 Executar no Banco (ALTER)'
+      Default = True
+      Font.Style = [fsBold]
+      OnClick = BtnExecuteClick
+      ParentFont = False
+      TabOrder = 0
+    end
+    object BtnCopySQL: TButton
+      Left = 250
+      Height = 35
+      Top = 10
+      Width = 110
+      Caption = 'Copiar SQL'
+      OnClick = BtnCopySQLClick
+      TabOrder = 1
+    end
+    object BtnClose: TButton
+      Left = 575
+      Height = 35
+      Top = 10
+      Width = 95
+      Cancel = True
+      Caption = 'Fechar'
+      ModalResult = 11
+      TabOrder = 2
+    end
+  end
+end

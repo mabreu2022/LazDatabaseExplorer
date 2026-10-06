@@ -9,7 +9,8 @@ interface
 
 uses
   uFBExplorerRegister, uFBExplorerMainForm, uFBConnectionManager,
-  uFBMetaData, uFBConnectionDialog, uFBCreateTableForm, uFBConstraintForm, uFBTypes,
+  uFBMetaData, uFBConnectionDialog, uFBCreateTableForm, uFBConstraintForm,
+  uFBAlterFieldForm, uFBTypes,
   LazarusPackageIntf;
 
 implementation
