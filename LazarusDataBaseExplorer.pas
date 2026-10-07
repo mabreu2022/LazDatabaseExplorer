@@ -11,7 +11,8 @@ uses
   uFBExplorerRegister, uFBExplorerMainForm, uFBConnectionManager, uFBMetaData, 
   uFBConnectionDialog, uFBCreateTableForm, uFBConstraintForm, 
   uFBAlterFieldForm, uFBTypes, uFBDataExportForm, uFBGeneratorForm, 
-  uFBCellViewerForm, uFBTreeIcons, LazarusPackageIntf;
+  uFBCellViewerForm, uFBTreeIcons, uFBIndexManagerForm, uFBDatabaseHealthForm,
+  LazarusPackageIntf;
 
 implementation
 

@@ -37,6 +37,30 @@ type
 
   TFBForeignKeyInfoList = array of TFBForeignKeyInfo;
 
+  { Index Info from Firebird system tables }
+  TFBIndexInfo = record
+    IndexName: string;
+    TableName: string;
+    Fields: string;
+    IsUnique: Boolean;
+    IsDescending: Boolean;
+    Selectivity: Double;
+    IsActive: Boolean;
+  end;
+  TFBIndexInfoList = array of TFBIndexInfo;
+
+  { Database Health & Transaction Info }
+  TFBDatabaseHealthInfo = record
+    PageSize: Integer;
+    PageBuffers: Integer;
+    SweepInterval: Integer;
+    OIT: Int64;
+    OAT: Int64;
+    OST: Int64;
+    NextTransaction: Int64;
+    Difference: Int64;
+  end;
+
   { TFBMetaDataExtractor }
   TFBMetaDataExtractor = class
   public
@@ -64,6 +88,23 @@ type
     class procedure SetGeneratorValue(const AGenName: string; AVal: Int64);
     class procedure CreateGenerator(const AGenName: string; AInitialVal: Int64 = 0);
     class procedure DropGenerator(const AGenName: string);
+
+    { Indices }
+    class function GetTableIndices(const ATableName: string): TFBIndexInfoList;
+    class procedure RecalculateIndexStatistics(const AIndexName: string);
+    class procedure CreateIndex(const AIndexName, ATableName, AFields: string; AUnique, ADescending: Boolean);
+    class procedure DropIndex(const AIndexName: string);
+
+    { PSQL Sources }
+    class function GetProcedureSource(const AProcName: string): string;
+    class function GetTriggerSource(const ATrigName: string): string;
+
+    { Full Database DDL Extraction }
+    class function ExtractFullDatabaseDDL: string;
+
+    { Database Health }
+    class function GetDatabaseHealthInfo: TFBDatabaseHealthInfo;
+    class procedure ExecuteSweep;
   end;
 
 implementation
@@ -545,6 +586,287 @@ var
 begin
   if not FBConnManager.IsConnected then Exit;
   FBConnManager.ExecuteDirect(Format('DROP SEQUENCE %s;', [UpperCase(Trim(AGenName))]), Rows);
+end;
+
+class function TFBMetaDataExtractor.GetTableIndices(const ATableName: string): TFBIndexInfoList;
+var
+  Qry: TSQLQuery;
+  Sql: string;
+  Idx: Integer;
+  CurIdxName: string;
+begin
+  SetLength(Result, 0);
+  if not FBConnManager.IsConnected then Exit;
+
+  Qry := TSQLQuery.Create(nil);
+  try
+    Qry.DataBase := FBConnManager.Connection;
+    Qry.Transaction := FBConnManager.Transaction;
+    Sql := 'SELECT TRIM(I.RDB$INDEX_NAME) AS IDX_NAME, ' +
+           '       TRIM(I.RDB$RELATION_NAME) AS TBL_NAME, ' +
+           '       I.RDB$UNIQUE_FLAG AS IS_UNIQUE, ' +
+           '       I.RDB$INDEX_INACTIVE AS IS_INACTIVE, ' +
+           '       I.RDB$INDEX_TYPE AS IDX_TYPE, ' +
+           '       I.RDB$STATISTICS AS STATS, ' +
+           '       TRIM(S.RDB$FIELD_NAME) AS FLD_NAME ' +
+           'FROM RDB$INDICES I ' +
+           'JOIN RDB$INDEX_SEGMENTS S ON I.RDB$INDEX_NAME = S.RDB$INDEX_NAME ' +
+           'WHERE UPPER(TRIM(I.RDB$RELATION_NAME)) = :TBL ' +
+           'ORDER BY I.RDB$INDEX_NAME, S.RDB$FIELD_POSITION;';
+    Qry.SQL.Text := Sql;
+    Qry.ParamByName('TBL').AsString := UpperCase(Trim(ATableName));
+    Qry.Open;
+
+    Idx := -1;
+    CurIdxName := '';
+    while not Qry.EOF do
+    begin
+      if Trim(Qry.FieldByName('IDX_NAME').AsString) <> CurIdxName then
+      begin
+        CurIdxName := Trim(Qry.FieldByName('IDX_NAME').AsString);
+        Inc(Idx);
+        SetLength(Result, Idx + 1);
+        Result[Idx].IndexName := CurIdxName;
+        Result[Idx].TableName := Trim(Qry.FieldByName('TBL_NAME').AsString);
+        Result[Idx].IsUnique := (Qry.FieldByName('IS_UNIQUE').AsInteger = 1);
+        Result[Idx].IsDescending := (Qry.FieldByName('IDX_TYPE').AsInteger = 1);
+        Result[Idx].IsActive := (Qry.FieldByName('IS_INACTIVE').AsInteger = 0);
+        Result[Idx].Selectivity := Qry.FieldByName('STATS').AsFloat;
+        Result[Idx].Fields := Trim(Qry.FieldByName('FLD_NAME').AsString);
+      end
+      else
+      begin
+        Result[Idx].Fields := Result[Idx].Fields + ', ' + Trim(Qry.FieldByName('FLD_NAME').AsString);
+      end;
+      Qry.Next;
+    end;
+  finally
+    Qry.Free;
+  end;
+end;
+
+class procedure TFBMetaDataExtractor.RecalculateIndexStatistics(const AIndexName: string);
+var
+  Rows: Integer;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  FBConnManager.ExecuteDirect(Format('SET STATISTICS INDEX %s;', [UpperCase(Trim(AIndexName))]), Rows);
+  FBConnManager.Transaction.CommitRetaining;
+end;
+
+class procedure TFBMetaDataExtractor.CreateIndex(const AIndexName, ATableName, AFields: string; AUnique, ADescending: Boolean);
+var
+  Sql: string;
+  Rows: Integer;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  Sql := 'CREATE ';
+  if AUnique then Sql := Sql + 'UNIQUE ';
+  if ADescending then Sql := Sql + 'DESCENDING ';
+  Sql := Sql + Format('INDEX %s ON %s (%s);', [UpperCase(Trim(AIndexName)), UpperCase(Trim(ATableName)), UpperCase(Trim(AFields))]);
+  FBConnManager.ExecuteDirect(Sql, Rows);
+  FBConnManager.Transaction.CommitRetaining;
+end;
+
+class procedure TFBMetaDataExtractor.DropIndex(const AIndexName: string);
+var
+  Rows: Integer;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  FBConnManager.ExecuteDirect(Format('DROP INDEX %s;', [UpperCase(Trim(AIndexName))]), Rows);
+  FBConnManager.Transaction.CommitRetaining;
+end;
+
+class function TFBMetaDataExtractor.GetProcedureSource(const AProcName: string): string;
+var
+  Qry: TSQLQuery;
+  Sql: string;
+begin
+  Result := '';
+  if not FBConnManager.IsConnected then Exit;
+  Qry := TSQLQuery.Create(nil);
+  try
+    Qry.DataBase := FBConnManager.Connection;
+    Qry.Transaction := FBConnManager.Transaction;
+    Sql := 'SELECT RDB$PROCEDURE_SOURCE FROM RDB$PROCEDURES WHERE UPPER(TRIM(RDB$PROCEDURE_NAME)) = :NAME;';
+    Qry.SQL.Text := Sql;
+    Qry.ParamByName('NAME').AsString := UpperCase(Trim(AProcName));
+    Qry.Open;
+    if not Qry.EOF then
+      Result := Trim(Qry.FieldByName('RDB$PROCEDURE_SOURCE').AsString);
+  finally
+    Qry.Free;
+  end;
+end;
+
+class function TFBMetaDataExtractor.GetTriggerSource(const ATrigName: string): string;
+var
+  Qry: TSQLQuery;
+  Sql: string;
+begin
+  Result := '';
+  if not FBConnManager.IsConnected then Exit;
+  Qry := TSQLQuery.Create(nil);
+  try
+    Qry.DataBase := FBConnManager.Connection;
+    Qry.Transaction := FBConnManager.Transaction;
+    Sql := 'SELECT RDB$TRIGGER_SOURCE FROM RDB$TRIGGERS WHERE UPPER(TRIM(RDB$TRIGGER_NAME)) = :NAME;';
+    Qry.SQL.Text := Sql;
+    Qry.ParamByName('NAME').AsString := UpperCase(Trim(ATrigName));
+    Qry.Open;
+    if not Qry.EOF then
+      Result := Trim(Qry.FieldByName('RDB$TRIGGER_SOURCE').AsString);
+  finally
+    Qry.Free;
+  end;
+end;
+
+class function TFBMetaDataExtractor.GetDatabaseHealthInfo: TFBDatabaseHealthInfo;
+var
+  Qry: TSQLQuery;
+  Sql: string;
+begin
+  FillChar(Result, SizeOf(Result), 0);
+  if not FBConnManager.IsConnected then Exit;
+
+  Qry := TSQLQuery.Create(nil);
+  try
+    Qry.DataBase := FBConnManager.Connection;
+    Qry.Transaction := FBConnManager.Transaction;
+    Sql := 'SELECT MON$PAGE_SIZE, MON$PAGE_BUFFERS, MON$SWEEP_INTERVAL, ' +
+           '       MON$OLDEST_TRANSACTION, MON$OLDEST_ACTIVE, MON$OLDEST_SNAPSHOT, MON$NEXT_TRANSACTION ' +
+           'FROM MON$DATABASE;';
+    Qry.SQL.Text := Sql;
+    Qry.Open;
+    if not Qry.EOF then
+    begin
+      Result.PageSize := Qry.FieldByName('MON$PAGE_SIZE').AsInteger;
+      Result.PageBuffers := Qry.FieldByName('MON$PAGE_BUFFERS').AsInteger;
+      Result.SweepInterval := Qry.FieldByName('MON$SWEEP_INTERVAL').AsInteger;
+      Result.OIT := Qry.FieldByName('MON$OLDEST_TRANSACTION').AsLargeInt;
+      Result.OAT := Qry.FieldByName('MON$OLDEST_ACTIVE').AsLargeInt;
+      Result.OST := Qry.FieldByName('MON$OLDEST_SNAPSHOT').AsLargeInt;
+      Result.NextTransaction := Qry.FieldByName('MON$NEXT_TRANSACTION').AsLargeInt;
+      Result.Difference := Result.NextTransaction - Result.OAT;
+    end;
+  finally
+    Qry.Free;
+  end;
+end;
+
+class procedure TFBMetaDataExtractor.ExecuteSweep;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  FBConnManager.Commit;
+  FBConnManager.Transaction.StartTransaction;
+  FBConnManager.Commit;
+end;
+
+class function TFBMetaDataExtractor.ExtractFullDatabaseDDL: string;
+var
+  SB: TStringList;
+  TblList, GenList, ProcList, TrigList: TStringList;
+  I: Integer;
+  Tbl, Src: string;
+  FKs: TFBForeignKeyInfoList;
+  J: Integer;
+begin
+  Result := '';
+  if not FBConnManager.IsConnected then Exit;
+
+  SB := TStringList.Create;
+  TblList := TStringList.Create;
+  GenList := TStringList.Create;
+  ProcList := TStringList.Create;
+  TrigList := TStringList.Create;
+  try
+    SB.Add('/* ================================================================ */');
+    SB.Add('/* SCRIPT DDL COMPLETO GERADO POR LAZARUS DATABASE EXPLORER         */');
+    SB.Add('/* Data/Hora: ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '                      */');
+    SB.Add('/* Banco: ' + FBConnManager.CurrentConfig.DatabasePath + ' */');
+    SB.Add('/* ================================================================ */' + LineEnding);
+
+    // 1. Sequences / Generators
+    GetGenerators(GenList);
+    if GenList.Count > 0 then
+    begin
+      SB.Add('/* --- SEQUENCES / GENERATORS --- */');
+      for I := 0 to GenList.Count - 1 do
+        SB.Add(Format('CREATE SEQUENCE %s;', [GenList[I]]));
+      SB.Add('');
+    end;
+
+    // 2. Tabelas
+    GetTables(TblList, False);
+    if TblList.Count > 0 then
+    begin
+      SB.Add('/* --- TABELAS --- */');
+      for I := 0 to TblList.Count - 1 do
+      begin
+        Tbl := TblList[I];
+        SB.Add(GenerateCreateTableDDL(Tbl));
+        SB.Add('');
+      end;
+    end;
+
+    // 3. Foreign Keys (Chaves Estrangeiras)
+    SB.Add('/* --- CHAVES ESTRANGEIRAS --- */');
+    for I := 0 to TblList.Count - 1 do
+    begin
+      Tbl := TblList[I];
+      FKs := GetTableForeignKeys(Tbl);
+      for J := 0 to High(FKs) do
+      begin
+        SB.Add(Format('ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s);',
+          [Tbl, FKs[J].ConstraintName, FKs[J].LocalField, FKs[J].RefTable, FKs[J].RefField]));
+      end;
+    end;
+    SB.Add('');
+
+    // 4. Stored Procedures
+    GetProcedures(ProcList);
+    if ProcList.Count > 0 then
+    begin
+      SB.Add('/* --- PROCEDURES (CORPO PSQL) --- */');
+      SB.Add('SET TERM ^ ;' + LineEnding);
+      for I := 0 to ProcList.Count - 1 do
+      begin
+        Src := GetProcedureSource(ProcList[I]);
+        if Src <> '' then
+        begin
+          SB.Add('CREATE OR ALTER PROCEDURE ' + ProcList[I]);
+          SB.Add(Src + ' ^' + LineEnding);
+        end;
+      end;
+      SB.Add('SET TERM ; ^' + LineEnding);
+    end;
+
+    // 5. Triggers
+    GetTriggers(TrigList);
+    if TrigList.Count > 0 then
+    begin
+      SB.Add('/* --- TRIGGERS (CORPO PSQL) --- */');
+      SB.Add('SET TERM ^ ;' + LineEnding);
+      for I := 0 to TrigList.Count - 1 do
+      begin
+        Src := GetTriggerSource(TrigList[I]);
+        if Src <> '' then
+        begin
+          SB.Add('/* Trigger: ' + TrigList[I] + ' */');
+          SB.Add(Src + ' ^' + LineEnding);
+        end;
+      end;
+      SB.Add('SET TERM ; ^' + LineEnding);
+    end;
+
+    Result := SB.Text;
+  finally
+    SB.Free;
+    TblList.Free;
+    GenList.Free;
+    ProcList.Free;
+    TrigList.Free;
+  end;
 end;
 
 end.

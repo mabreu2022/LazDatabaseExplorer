@@ -2,10 +2,10 @@ object FBExplorerMainForm: TFBExplorerMainForm
   Left = 240
   Height = 650
   Top = 100
-  Width = 1000
+  Width = 1150
   Caption = 'Firebird Database Explorer (Lazarus)'
   ClientHeight = 650
-  ClientWidth = 1000
+  ClientWidth = 1150
   Position = poScreenCenter
   LCLVersion = '2.2.0.0'
   KeyPreview = True
@@ -16,11 +16,11 @@ object FBExplorerMainForm: TFBExplorerMainForm
     Left = 0
     Height = 44
     Top = 0
-    Width = 1000
+    Width = 1150
     Align = alTop
     BevelOuter = bvNone
     ClientHeight = 44
-    ClientWidth = 1000
+    ClientWidth = 1150
     TabOrder = 0
     object BtnConnect: TButton
       Left = 8
@@ -53,16 +53,16 @@ object FBExplorerMainForm: TFBExplorerMainForm
       Left = 346
       Height = 32
       Top = 6
-      Width = 120
+      Width = 110
       Caption = '➕ Nova Tabela'
       OnClick = BtnNewTableClick
       TabOrder = 3
     end
     object BtnRunSQL: TButton
-      Left = 472
+      Left = 462
       Height = 32
       Top = 6
-      Width = 130
+      Width = 120
       Caption = '▶ Executar (F9)'
       Font.Style = [fsBold]
       OnClick = BtnRunSQLClick
@@ -70,40 +70,58 @@ object FBExplorerMainForm: TFBExplorerMainForm
       TabOrder = 4
     end
     object BtnCommit: TButton
-      Left = 608
+      Left = 588
       Height = 32
       Top = 6
-      Width = 80
+      Width = 75
       Caption = '✔ Commit'
       OnClick = BtnCommitClick
       TabOrder = 5
     end
     object BtnRollback: TButton
-      Left = 694
+      Left = 668
       Height = 32
       Top = 6
-      Width = 85
+      Width = 80
       Caption = '✖ Rollback'
       OnClick = BtnRollbackClick
       TabOrder = 6
     end
     object BtnConstraints: TButton
-      Left = 786
+      Left = 754
       Height = 32
       Top = 6
-      Width = 140
-      Caption = '🔑 Chaves (PK/FK)'
+      Width = 115
+      Caption = '🔑 Chaves'
       OnClick = BtnConstraintsClick
       TabOrder = 7
     end
     object BtnGenerators: TButton
-      Left = 932
+      Left = 874
       Height = 32
       Top = 6
-      Width = 110
+      Width = 90
       Caption = '🔢 Sequences'
       OnClick = BtnGeneratorsClick
       TabOrder = 8
+    end
+    object BtnHealth: TButton
+      Left = 970
+      Height = 32
+      Top = 6
+      Width = 80
+      Caption = '🩺 Saúde'
+      OnClick = BtnHealthClick
+      TabOrder = 9
+    end
+    object BtnExtractAllDDL: TButton
+      Left = 1056
+      Height = 32
+      Top = 6
+      Width = 90
+      Caption = '📜 DDL Full'
+      OnClick = BtnExtractAllDDLClick
+      TabOrder = 10
     end
   end
   object PanelClient: TPanel
@@ -175,8 +193,26 @@ object FBExplorerMainForm: TFBExplorerMainForm
           Color = 16185078
           ParentColor = False
           TabOrder = 3
+          object BtnNewQueryTab: TButton
+            Left = 6
+            Height = 24
+            Top = 4
+            Width = 90
+            Caption = '➕ Nova Aba'
+            OnClick = BtnNewQueryTabClick
+            TabOrder = 1
+          end
+          object BtnCloseQueryTab: TButton
+            Left = 100
+            Height = 24
+            Top = 4
+            Width = 75
+            Caption = '✖ Fechar'
+            OnClick = BtnCloseQueryTabClick
+            TabOrder = 2
+          end
           object LabelHistory: TLabel
-            Left = 8
+            Left = 185
             Height = 15
             Top = 8
             Width = 65
@@ -184,10 +220,10 @@ object FBExplorerMainForm: TFBExplorerMainForm
             ParentColor = False
           end
           object ComboSQLHistory: TComboBox
-            Left = 78
+            Left = 255
             Height = 23
             Top = 5
-            Width = 620
+            Width = 445
             Anchors = [akTop, akLeft, akRight]
             ItemHeight = 15
             OnChange = ComboSQLHistoryChange
@@ -408,6 +444,15 @@ object FBExplorerMainForm: TFBExplorerMainForm
             OnClick = BtnRefreshStructClick
             TabOrder = 4
           end
+          object BtnIndices: TButton
+            Left = 705
+            Height = 26
+            Top = 6
+            Width = 90
+            Caption = '⚡ Índices...'
+            OnClick = BtnIndicesClick
+            TabOrder = 5
+          end
         end
         object GridStructFields: TStringGrid
           Left = 0
@@ -516,8 +561,24 @@ object FBExplorerMainForm: TFBExplorerMainForm
       Caption = 'Excluir Tabela (DROP TABLE)...'
       OnClick = MenuItemDropTableClick
     end
+    object MenuItemIndices: TMenuItem
+      Caption = '⚡ Gerenciar Índices da Tabela...'
+      OnClick = MenuItemIndicesClick
+    end
+    object MenuItemEditPSQL: TMenuItem
+      Caption = '⚙️ Visualizar / Editar Código PSQL...'
+      OnClick = MenuItemEditPSQLClick
+    end
     object MenuItemSeparator2: TMenuItem
       Caption = '-'
+    end
+    object MenuItemHealth: TMenuItem
+      Caption = '🩺 Diagnóstico & Saúde do Banco...'
+      OnClick = MenuItemHealthClick
+    end
+    object MenuItemExtractAllDDL: TMenuItem
+      Caption = '📜 Extrair DDL Completo do Banco...'
+      OnClick = MenuItemExtractAllDDLClick
     end
     object MenuItemReconnectDb: TMenuItem
       Caption = '🔌 Reconectar este Banco'

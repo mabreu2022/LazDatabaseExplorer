@@ -1,0 +1,216 @@
+object FBDatabaseHealthForm: TFBDatabaseHealthForm
+  Left = 360
+  Height = 490
+  Top = 160
+  Width = 600
+  Caption = 'Diagnóstico de Saúde & Transações do Firebird'
+  ClientHeight = 490
+  ClientWidth = 600
+  Position = poScreenCenter
+  LCLVersion = '2.2.0.0'
+  OnCreate = FormCreate
+  object PanelTop: TPanel
+    Left = 0
+    Height = 46
+    Top = 0
+    Width = 600
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 46
+    ClientWidth = 600
+    Color = 15724527
+    ParentColor = False
+    TabOrder = 0
+    object LabelTitle: TLabel
+      Left = 14
+      Height = 21
+      Top = 12
+      Width = 330
+      Caption = '🩺 Diagnóstico de Saúde & Transações'
+      Font.Height = -16
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+    object LabelDbInfo: TLabel
+      Left = 360
+      Height = 15
+      Top = 16
+      Width = 120
+      Anchors = [akTop, akRight]
+      Caption = 'Banco: meubanco.fdb'
+      Font.Color = clGray
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object PanelCenter: TPanel
+    Left = 0
+    Height = 392
+    Top = 46
+    Width = 600
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 392
+    ClientWidth = 600
+    TabOrder = 1
+    object GroupBoxMetrics: TGroupBox
+      Left = 14
+      Height = 240
+      Top = 10
+      Width = 572
+      Align = alTop
+      BorderSpacing.Left = 14
+      BorderSpacing.Top = 10
+      BorderSpacing.Right = 14
+      Caption = ' Métricas de Transações e Páginas (MON$DATABASE) '
+      ClientHeight = 220
+      ClientWidth = 568
+      TabOrder = 0
+      object LabelPageSize: TLabel
+        Left = 16
+        Height = 15
+        Top = 12
+        Width = 175
+        Caption = 'Tamanho de Página: 8192 bytes'
+        ParentColor = False
+      end
+      object LabelPageBuffers: TLabel
+        Left = 16
+        Height = 15
+        Top = 36
+        Width = 185
+        Caption = 'Buffers de Página (Cache): 2048'
+        ParentColor = False
+      end
+      object LabelSweepInterval: TLabel
+        Left = 16
+        Height = 15
+        Top = 60
+        Width = 230
+        Caption = 'Intervalo de Sweep Automático: 20000'
+        ParentColor = False
+      end
+      object LabelNextTx: TLabel
+        Left = 16
+        Height = 15
+        Top = 96
+        Width = 190
+        Caption = 'Próxima Transação (Next): 0'
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object LabelOAT: TLabel
+        Left = 16
+        Height = 15
+        Top = 120
+        Width = 190
+        Caption = 'Mais Antiga Ativa (OAT): 0'
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object LabelOIT: TLabel
+        Left = 16
+        Height = 15
+        Top = 144
+        Width = 210
+        Caption = 'Mais Antiga de Interesse (OIT): 0'
+        ParentColor = False
+      end
+      object LabelOST: TLabel
+        Left = 16
+        Height = 15
+        Top = 168
+        Width = 185
+        Caption = 'Mais Antiga Snapshot (OST): 0'
+        ParentColor = False
+      end
+      object LabelGap: TLabel
+        Left = 16
+        Height = 17
+        Top = 192
+        Width = 260
+        Caption = 'Diferencial Ativo (Next - OAT): 0 transações'
+        Font.Height = -13
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+    end
+    object PanelStatus: TPanel
+      Left = 14
+      Height = 70
+      Top = 260
+      Width = 572
+      Align = alTop
+      BorderSpacing.Left = 14
+      BorderSpacing.Top = 10
+      BorderSpacing.Right = 14
+      BevelOuter = bvNone
+      ClientHeight = 70
+      ClientWidth = 572
+      Color = 14482663
+      ParentColor = False
+      TabOrder = 1
+      object LabelHealthStatus: TLabel
+        Left = 12
+        Height = 45
+        Top = 12
+        Width = 548
+        Align = alClient
+        BorderSpacing.Left = 12
+        BorderSpacing.Top = 12
+        BorderSpacing.Right = 12
+        BorderSpacing.Bottom = 12
+        Caption = '🟢 SAUDÁVEL: O banco de dados está operando em excelente estado.'
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+        WordWrap = True
+      end
+    end
+    object BtnSweep: TButton
+      Left = 14
+      Height = 32
+      Top = 344
+      Width = 240
+      Caption = '🧹 Executar Sweep / Limpeza'
+      Font.Style = [fsBold]
+      OnClick = BtnSweepClick
+      ParentFont = False
+      TabOrder = 2
+    end
+    object BtnRefresh: TButton
+      Left = 264
+      Height = 32
+      Top = 344
+      Width = 140
+      Caption = '🔄 Atualizar Métricas'
+      OnClick = BtnRefreshClick
+      TabOrder = 3
+    end
+  end
+  object PanelBottom: TPanel
+    Left = 0
+    Height = 52
+    Top = 438
+    Width = 600
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 52
+    ClientWidth = 600
+    TabOrder = 2
+    object BtnClose: TButton
+      Left = 492
+      Height = 34
+      Top = 9
+      Width = 94
+      Anchors = [akTop, akRight]
+      Caption = 'Fechar'
+      OnClick = BtnCloseClick
+      TabOrder = 0
+    end
+  end
+end

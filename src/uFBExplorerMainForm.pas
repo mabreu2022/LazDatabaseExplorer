@@ -12,7 +12,8 @@ uses
   // Local units
   uFBTypes, uFBConnectionManager, uFBMetaData, uFBConnectionDialog,
   uFBCreateTableForm, uFBConstraintForm, uFBAlterFieldForm,
-  uFBDataExportForm, uFBGeneratorForm, uFBCellViewerForm, uFBTreeIcons;
+  uFBDataExportForm, uFBGeneratorForm, uFBCellViewerForm, uFBTreeIcons,
+  uFBIndexManagerForm, uFBDatabaseHealthForm;
 
 type
   TNodeKind = (nkDatabase, nkTablesGroup, nkTable, nkField, nkViewsGroup, nkView, nkProcsGroup, nkProc, nkTrigsGroup, nkTrig, nkGensGroup, nkGen);
@@ -38,6 +39,8 @@ type
     BtnRollback: TButton;
     BtnConstraints: TButton;
     BtnGenerators: TButton;
+    BtnHealth: TButton;
+    BtnExtractAllDDL: TButton;
 
     PanelClient: TPanel;
     PanelLeft: TPanel;
@@ -47,6 +50,8 @@ type
     PageControlMain: TPageControl;
     TabSheetSQL: TTabSheet;
     PanelSQLBar: TPanel;
+    BtnNewQueryTab: TButton;
+    BtnCloseQueryTab: TButton;
     LabelHistory: TLabel;
     ComboSQLHistory: TComboBox;
     PanelEditorContainer: TPanel;
@@ -78,6 +83,7 @@ type
     BtnRenameField: TButton;
     BtnDropField: TButton;
     BtnRefreshStruct: TButton;
+    BtnIndices: TButton;
     GridStructFields: TStringGrid;
     SplitterStruct: TSplitter;
     MemoDDL: TMemo;
@@ -91,12 +97,16 @@ type
     MenuItemExportTable: TMenuItem;
     MenuItemConstraints: TMenuItem;
     MenuItemAlterFields: TMenuItem;
+    MenuItemIndices: TMenuItem;
+    MenuItemEditPSQL: TMenuItem;
     MenuItemSeparator1: TMenuItem;
     MenuItemNewTable: TMenuItem;
     MenuItemGenerators: TMenuItem;
     MenuItemDDL: TMenuItem;
     MenuItemDropTable: TMenuItem;
     MenuItemSeparator2: TMenuItem;
+    MenuItemHealth: TMenuItem;
+    MenuItemExtractAllDDL: TMenuItem;
     MenuItemReconnectDb: TMenuItem;
     MenuItemDisconnectDb: TMenuItem;
     MenuItemRemoveDb: TMenuItem;
@@ -115,6 +125,8 @@ type
     procedure BtnRollbackClick(Sender: TObject);
     procedure BtnConstraintsClick(Sender: TObject);
     procedure BtnGeneratorsClick(Sender: TObject);
+    procedure BtnHealthClick(Sender: TObject);
+    procedure BtnExtractAllDDLClick(Sender: TObject);
 
     procedure TreeViewMetaSelectionChanged(Sender: TObject);
     procedure TreeViewMetaDblClick(Sender: TObject);
@@ -128,6 +140,10 @@ type
     procedure MenuItemDropTableClick(Sender: TObject);
     procedure MenuItemAlterFieldsClick(Sender: TObject);
     procedure MenuItemGeneratorsClick(Sender: TObject);
+    procedure MenuItemIndicesClick(Sender: TObject);
+    procedure MenuItemEditPSQLClick(Sender: TObject);
+    procedure MenuItemHealthClick(Sender: TObject);
+    procedure MenuItemExtractAllDDLClick(Sender: TObject);
     procedure MenuItemReconnectDbClick(Sender: TObject);
     procedure MenuItemDisconnectDbClick(Sender: TObject);
     procedure MenuItemRemoveDbClick(Sender: TObject);
@@ -141,19 +157,27 @@ type
     procedure BtnExportDataClick(Sender: TObject);
     procedure DBGridResultsDblClick(Sender: TObject);
 
-    { Histórico de SQL }
+    { Abas e Histórico de SQL }
+    procedure BtnNewQueryTabClick(Sender: TObject);
+    procedure BtnCloseQueryTabClick(Sender: TObject);
     procedure ComboSQLHistoryChange(Sender: TObject);
 
-    { Edição de Estrutura de Campos }
+    { Edição de Estrutura de Campos e Índices }
     procedure BtnAddFieldClick(Sender: TObject);
     procedure BtnAlterFieldTypeClick(Sender: TObject);
     procedure BtnRenameFieldClick(Sender: TObject);
     procedure BtnDropFieldClick(Sender: TObject);
     procedure BtnRefreshStructClick(Sender: TObject);
+    procedure BtnIndicesClick(Sender: TObject);
   private
     FSynEdit: TSynEdit;
     FSynSQLSyn: TSynSQLSyn;
     FImageList: TImageList;
+    PageControlQueries: TPageControl;
+    function GetActiveSynEdit: TSynEdit;
+    function CreateQueryTab(const ATitle: string = ''; const AText: string = ''): TSynEdit;
+    procedure OpenProcedureSource(const AProcName: string);
+    procedure OpenTriggerSource(const ATrigName: string);
     procedure InitSynEdit;
     procedure SetupStructGridHeaders;
     procedure OnConnectionChanged(Sender: TObject; Connected: Boolean; const Msg: string);
@@ -258,11 +282,89 @@ begin
 end;
 
 procedure TFBExplorerMainForm.ComboSQLHistoryChange(Sender: TObject);
+var
+  Ed: TSynEdit;
 begin
   if ComboSQLHistory.ItemIndex >= 0 then
-    FSynEdit.Text := ComboSQLHistory.Items[ComboSQLHistory.ItemIndex];
+  begin
+    Ed := GetActiveSynEdit;
+    if Ed <> nil then
+      Ed.Text := ComboSQLHistory.Items[ComboSQLHistory.ItemIndex];
+  end;
 end;
 
+function TFBExplorerMainForm.GetActiveSynEdit: TSynEdit;
+var
+  Page: TTabSheet;
+  I: Integer;
+begin
+  Result := nil;
+  if (PageControlQueries <> nil) and (PageControlQueries.ActivePage <> nil) then
+  begin
+    Page := PageControlQueries.ActivePage;
+    for I := 0 to Page.ControlCount - 1 do
+    begin
+      if Page.Controls[I] is TSynEdit then
+      begin
+        Result := TSynEdit(Page.Controls[I]);
+        Exit;
+      end;
+    end;
+  end;
+  if Result = nil then
+    Result := FSynEdit;
+end;
+
+function TFBExplorerMainForm.CreateQueryTab(const ATitle: string; const AText: string): TSynEdit;
+var
+  Tab: TTabSheet;
+  Ed: TSynEdit;
+begin
+  Tab := PageControlQueries.AddTabSheet;
+  if ATitle <> '' then
+    Tab.Caption := ATitle
+  else
+    Tab.Caption := 'Query ' + IntToStr(PageControlQueries.PageCount);
+
+  Ed := TSynEdit.Create(Tab);
+  Ed.Parent := Tab;
+  Ed.Align := alClient;
+  Ed.Font.Name := 'Courier New';
+  Ed.Font.Size := 10;
+  Ed.Gutter.Width := 30;
+  Ed.Highlighter := FSynSQLSyn;
+
+  if AText <> '' then
+    Ed.Text := AText
+  else
+    Ed.Text := 'SELECT * FROM RDB$DATABASE' + LineEnding;
+
+  PageControlQueries.ActivePage := Tab;
+  FSynEdit := Ed;
+  Result := Ed;
+end;
+
+procedure TFBExplorerMainForm.BtnNewQueryTabClick(Sender: TObject);
+begin
+  CreateQueryTab;
+end;
+
+procedure TFBExplorerMainForm.BtnCloseQueryTabClick(Sender: TObject);
+var
+  CurTab: TTabSheet;
+begin
+  if (PageControlQueries <> nil) and (PageControlQueries.PageCount > 1) and (PageControlQueries.ActivePage <> nil) then
+  begin
+    CurTab := PageControlQueries.ActivePage;
+    CurTab.Free;
+    FSynEdit := GetActiveSynEdit;
+  end
+  else if (PageControlQueries <> nil) and (PageControlQueries.PageCount = 1) then
+  begin
+    if GetActiveSynEdit <> nil then
+      GetActiveSynEdit.Clear;
+  end;
+end;
 procedure TFBExplorerMainForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   if Key = VK_F9 then
@@ -318,18 +420,14 @@ end;
 
 procedure TFBExplorerMainForm.InitSynEdit;
 begin
-  FSynEdit := TSynEdit.Create(Self);
-  FSynEdit.Parent := PanelEditorContainer;
-  FSynEdit.Align := alClient;
-  FSynEdit.Font.Name := 'Courier New';
-  FSynEdit.Font.Size := 10;
-  FSynEdit.Gutter.Width := 30;
-
   FSynSQLSyn := TSynSQLSyn.Create(Self);
   FSynSQLSyn.SQLDialect := sqlFirebird25;
-  FSynEdit.Highlighter := FSynSQLSyn;
 
-  FSynEdit.Text := 'SELECT * FROM RDB$DATABASE' + LineEnding;
+  PageControlQueries := TPageControl.Create(Self);
+  PageControlQueries.Parent := PanelEditorContainer;
+  PageControlQueries.Align := alClient;
+
+  FSynEdit := CreateQueryTab('Query 1', 'SELECT * FROM RDB$DATABASE' + LineEnding);
 end;
 
 procedure TFBExplorerMainForm.SetupStructGridHeaders;
@@ -660,6 +758,7 @@ var
   Rows: Integer;
   StartTime: QWord;
   ElapsedMs: QWord;
+  Ed: TSynEdit;
 begin
   if not FBConnManager.IsConnected then
   begin
@@ -667,10 +766,13 @@ begin
     Exit;
   end;
 
-  if FSynEdit.SelText <> '' then
-    Sql := Trim(FSynEdit.SelText)
+  Ed := GetActiveSynEdit;
+  if Ed = nil then Exit;
+
+  if Ed.SelText <> '' then
+    Sql := Trim(Ed.SelText)
   else
-    Sql := Trim(FSynEdit.Text);
+    Sql := Trim(Ed.Text);
 
   if Sql = '' then Exit;
 
@@ -851,6 +953,16 @@ begin
     begin
       TFBGeneratorForm.Execute(Info.Name);
       Exit;
+    end
+    else if Info.Kind = nkProc then
+    begin
+      OpenProcedureSource(Info.Name);
+      Exit;
+    end
+    else if Info.Kind = nkTrig then
+    begin
+      OpenTriggerSource(Info.Name);
+      Exit;
     end;
   end;
 
@@ -862,9 +974,12 @@ end;
 procedure TFBExplorerMainForm.OpenSelectedTableData(const ATableName: string; TopCount: Integer);
 var
   Sql: string;
+  Ed: TSynEdit;
 begin
   Sql := TFBMetaDataExtractor.GenerateSelectTopSQL(Trim(ATableName), TopCount);
-  FSynEdit.Text := Sql;
+  Ed := GetActiveSynEdit;
+  if Ed <> nil then
+    Ed.Text := Sql;
   PageControlMain.ActivePage := TabSheetSQL;
   BtnRunSQLClick(Self);
 end;
@@ -924,7 +1039,7 @@ begin
   DDL := TFBMetaDataExtractor.GenerateCreateTableDDL(Tbl);
   LoadTableStructure(Tbl);
 
-  FSynEdit.Text := DDL;
+  CreateQueryTab('DDL: ' + Tbl, DDL);
   PageControlMain.ActivePage := TabSheetSQL;
   LogMsg('Script DDL gerado para a tabela "' + Tbl + '".');
   StatusBar1.Panels[1].Text := 'Script DDL exibido no Editor SQL.';
@@ -1196,6 +1311,130 @@ begin
   Tbl := GetSelectedTableName;
   if Tbl <> '' then
     LoadTableStructure(Tbl);
+end;
+
+procedure TFBExplorerMainForm.BtnIndicesClick(Sender: TObject);
+var
+  Tbl: string;
+begin
+  if not FBConnManager.IsConnected then
+  begin
+    ShowMessage('Conecte-se a uma base Firebird antes de gerenciar índices.');
+    Exit;
+  end;
+
+  Tbl := GetSelectedTableName;
+  if Tbl = '' then
+  begin
+    ShowMessage('Selecione uma tabela para gerenciar seus índices.');
+    Exit;
+  end;
+
+  TFBIndexManagerForm.Execute(Tbl);
+  RefreshMetaDataTree;
+end;
+
+procedure TFBExplorerMainForm.MenuItemIndicesClick(Sender: TObject);
+begin
+  BtnIndicesClick(Sender);
+end;
+
+procedure TFBExplorerMainForm.BtnHealthClick(Sender: TObject);
+begin
+  if not FBConnManager.IsConnected then
+  begin
+    ShowMessage('Conecte-se a uma base Firebird antes de verificar a saúde do banco.');
+    Exit;
+  end;
+
+  TFBDatabaseHealthForm.Execute;
+end;
+
+procedure TFBExplorerMainForm.MenuItemHealthClick(Sender: TObject);
+begin
+  BtnHealthClick(Sender);
+end;
+
+procedure TFBExplorerMainForm.BtnExtractAllDDLClick(Sender: TObject);
+var
+  FullDDL: string;
+begin
+  if not FBConnManager.IsConnected then
+  begin
+    ShowMessage('Conecte-se a uma base Firebird antes de extrair metadados.');
+    Exit;
+  end;
+
+  Screen.Cursor := crHourGlass;
+  try
+    FullDDL := TFBMetaDataExtractor.ExtractFullDatabaseDDL;
+  finally
+    Screen.Cursor := crDefault;
+  end;
+
+  CreateQueryTab('Full DDL', FullDDL);
+  PageControlMain.ActivePage := TabSheetSQL;
+  LogMsg('Metadados completos (Full DDL) extraídos com sucesso.');
+  StatusBar1.Panels[1].Text := 'Full DDL gerado em nova aba.';
+end;
+
+procedure TFBExplorerMainForm.MenuItemExtractAllDDLClick(Sender: TObject);
+begin
+  BtnExtractAllDDLClick(Sender);
+end;
+
+procedure TFBExplorerMainForm.OpenProcedureSource(const AProcName: string);
+var
+  Src: string;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  Screen.Cursor := crHourGlass;
+  try
+    Src := TFBMetaDataExtractor.GetProcedureSource(AProcName);
+  finally
+    Screen.Cursor := crDefault;
+  end;
+
+  CreateQueryTab('Proc: ' + AProcName, Src);
+  PageControlMain.ActivePage := TabSheetSQL;
+  LogMsg('Código da Procedure "' + AProcName + '" carregado.');
+  StatusBar1.Panels[1].Text := 'Procedure exibida no Editor.';
+end;
+
+procedure TFBExplorerMainForm.OpenTriggerSource(const ATrigName: string);
+var
+  Src: string;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  Screen.Cursor := crHourGlass;
+  try
+    Src := TFBMetaDataExtractor.GetTriggerSource(ATrigName);
+  finally
+    Screen.Cursor := crDefault;
+  end;
+
+  CreateQueryTab('Trig: ' + ATrigName, Src);
+  PageControlMain.ActivePage := TabSheetSQL;
+  LogMsg('Código da Trigger "' + ATrigName + '" carregado.');
+  StatusBar1.Panels[1].Text := 'Trigger exibida no Editor.';
+end;
+
+procedure TFBExplorerMainForm.MenuItemEditPSQLClick(Sender: TObject);
+var
+  Node: TTreeNode;
+  Info: TNodeInfo;
+begin
+  Node := TreeViewMeta.Selected;
+  if (Node <> nil) and (Node.Data <> nil) then
+  begin
+    Info := TNodeInfo(Node.Data);
+    if Info.Kind = nkProc then
+      OpenProcedureSource(Info.Name)
+    else if Info.Kind = nkTrig then
+      OpenTriggerSource(Info.Name)
+    else
+      ShowMessage('Selecione uma Stored Procedure ou Trigger para visualizar o código PSQL.');
+  end;
 end;
 
 end.

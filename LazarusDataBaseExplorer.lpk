@@ -107,6 +107,22 @@ Includes schema browser, visual table creator wizard, SQL runner and metadata ma
         <Filename Value="src/uFBTreeIcons.pas"/>
         <UnitName Value="uFBTreeIcons"/>
       </Item>
+      <Item>
+        <Filename Value="src/uFBIndexManagerForm.pas"/>
+        <UnitName Value="uFBIndexManagerForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBIndexManagerForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBDatabaseHealthForm.pas"/>
+        <UnitName Value="uFBDatabaseHealthForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBDatabaseHealthForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
     </Files>
     <RequiredPkgs>
       <Item>
