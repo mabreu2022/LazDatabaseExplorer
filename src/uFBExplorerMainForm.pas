@@ -118,6 +118,7 @@ type
 
     procedure TreeViewMetaSelectionChanged(Sender: TObject);
     procedure TreeViewMetaDblClick(Sender: TObject);
+    procedure TreeViewMetaMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure TreeViewMetaDeletion(Sender: TObject; Node: TTreeNode);
 
     { Menus de contexto }
@@ -887,26 +888,46 @@ begin
   TFBDataExportForm.Execute(SQLQuery1, Tbl);
 end;
 
-procedure TFBExplorerMainForm.MenuItemGeneratorsClick(Sender: TObject);
-begin
-  BtnGeneratorsClick(Sender);
-end;
-
 procedure TFBExplorerMainForm.BtnGeneratorsClick(Sender: TObject);
 begin
   TFBGeneratorForm.Execute;
 end;
 
+procedure TFBExplorerMainForm.MenuItemGeneratorsClick(Sender: TObject);
+begin
+  BtnGeneratorsClick(Sender);
+end;
+
+procedure TFBExplorerMainForm.TreeViewMetaMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Node: TTreeNode;
+begin
+  if Button = mbRight then
+  begin
+    Node := TreeViewMeta.GetNodeAt(X, Y);
+    if Node <> nil then
+      TreeViewMeta.Selected := Node;
+  end;
+end;
+
 procedure TFBExplorerMainForm.MenuItemDDLClick(Sender: TObject);
 var
-  Tbl: string;
+  Tbl, DDL: string;
 begin
   Tbl := GetSelectedTableName;
-  if Tbl <> '' then
+  if Tbl = '' then
   begin
-    LoadTableStructure(Tbl);
-    PageControlMain.ActivePage := TabSheetStructure;
+    ShowMessage('Selecione uma tabela para visualizar o script DDL.');
+    Exit;
   end;
+
+  DDL := TFBMetaDataExtractor.GenerateCreateTableDDL(Tbl);
+  LoadTableStructure(Tbl);
+
+  FSynEdit.Text := DDL;
+  PageControlMain.ActivePage := TabSheetSQL;
+  LogMsg('Script DDL gerado para a tabela "' + Tbl + '".');
+  StatusBar1.Panels[1].Text := 'Script DDL exibido no Editor SQL.';
 end;
 
 procedure TFBExplorerMainForm.MenuItemDropTableClick(Sender: TObject);

@@ -138,6 +138,7 @@ object FBExplorerMainForm: TFBExplorerMainForm
         TabOrder = 0
         OnDblClick = TreeViewMetaDblClick
         OnDeletion = TreeViewMetaDeletion
+        OnMouseDown = TreeViewMetaMouseDown
         OnSelectionChanged = TreeViewMetaSelectionChanged
         Options = [tvoAutoExpand, tvoAutoItemHeight, tvoHideSelection, tvoKeepCollapsedNodes, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
       end
