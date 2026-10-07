@@ -6,12 +6,13 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ExtCtrls, ComCtrls, DBGrids, Grids, Menus, db, sqldb,
+  ExtCtrls, ComCtrls, DBGrids, Grids, Menus, LCLType, db, sqldb,
   // SynEdit
   SynEdit, SynHighlighterSQL,
   // Local units
   uFBTypes, uFBConnectionManager, uFBMetaData, uFBConnectionDialog,
-  uFBCreateTableForm, uFBConstraintForm, uFBAlterFieldForm;
+  uFBCreateTableForm, uFBConstraintForm, uFBAlterFieldForm,
+  uFBDataExportForm, uFBGeneratorForm, uFBCellViewerForm, uFBTreeIcons;
 
 type
   TNodeKind = (nkDatabase, nkTablesGroup, nkTable, nkField, nkViewsGroup, nkView, nkProcsGroup, nkProc, nkTrigsGroup, nkTrig, nkGensGroup, nkGen);
@@ -36,6 +37,7 @@ type
     BtnCommit: TButton;
     BtnRollback: TButton;
     BtnConstraints: TButton;
+    BtnGenerators: TButton;
 
     PanelClient: TPanel;
     PanelLeft: TPanel;
@@ -44,6 +46,9 @@ type
 
     PageControlMain: TPageControl;
     TabSheetSQL: TTabSheet;
+    PanelSQLBar: TPanel;
+    LabelHistory: TLabel;
+    ComboSQLHistory: TComboBox;
     PanelEditorContainer: TPanel;
     SplitterEditor: TSplitter;
     PageControlResults: TPageControl;
@@ -56,6 +61,7 @@ type
     BtnPostRow: TButton;
     BtnCancelRow: TButton;
     BtnRefreshData: TButton;
+    BtnExportData: TButton;
     LabelDataHint: TLabel;
     DBGridResults: TDBGrid;
 
@@ -82,10 +88,12 @@ type
 
     PopupMenuTree: TPopupMenu;
     MenuItemSelectTop: TMenuItem;
+    MenuItemExportTable: TMenuItem;
     MenuItemConstraints: TMenuItem;
     MenuItemAlterFields: TMenuItem;
     MenuItemSeparator1: TMenuItem;
     MenuItemNewTable: TMenuItem;
+    MenuItemGenerators: TMenuItem;
     MenuItemDDL: TMenuItem;
     MenuItemDropTable: TMenuItem;
     MenuItemSeparator2: TMenuItem;
@@ -97,6 +105,7 @@ type
 
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure BtnConnectClick(Sender: TObject);
     procedure BtnDisconnectClick(Sender: TObject);
     procedure BtnRefreshMetaClick(Sender: TObject);
@@ -105,6 +114,7 @@ type
     procedure BtnCommitClick(Sender: TObject);
     procedure BtnRollbackClick(Sender: TObject);
     procedure BtnConstraintsClick(Sender: TObject);
+    procedure BtnGeneratorsClick(Sender: TObject);
 
     procedure TreeViewMetaSelectionChanged(Sender: TObject);
     procedure TreeViewMetaDblClick(Sender: TObject);
@@ -112,9 +122,11 @@ type
 
     { Menus de contexto }
     procedure MenuItemSelectTopClick(Sender: TObject);
+    procedure MenuItemExportTableClick(Sender: TObject);
     procedure MenuItemDDLClick(Sender: TObject);
     procedure MenuItemDropTableClick(Sender: TObject);
     procedure MenuItemAlterFieldsClick(Sender: TObject);
+    procedure MenuItemGeneratorsClick(Sender: TObject);
     procedure MenuItemReconnectDbClick(Sender: TObject);
     procedure MenuItemDisconnectDbClick(Sender: TObject);
     procedure MenuItemRemoveDbClick(Sender: TObject);
@@ -125,6 +137,11 @@ type
     procedure BtnPostRowClick(Sender: TObject);
     procedure BtnCancelRowClick(Sender: TObject);
     procedure BtnRefreshDataClick(Sender: TObject);
+    procedure BtnExportDataClick(Sender: TObject);
+    procedure DBGridResultsDblClick(Sender: TObject);
+
+    { Histórico de SQL }
+    procedure ComboSQLHistoryChange(Sender: TObject);
 
     { Edição de Estrutura de Campos }
     procedure BtnAddFieldClick(Sender: TObject);
@@ -135,6 +152,7 @@ type
   private
     FSynEdit: TSynEdit;
     FSynSQLSyn: TSynSQLSyn;
+    FImageList: TImageList;
     procedure InitSynEdit;
     procedure SetupStructGridHeaders;
     procedure OnConnectionChanged(Sender: TObject; Connected: Boolean; const Msg: string);
@@ -145,6 +163,9 @@ type
     procedure LoadTableStructure(const ATableName: string);
     procedure LogMsg(const Msg: string);
     procedure UpdateStatusBarInfo;
+    procedure LoadSQLHistory;
+    procedure SaveSQLHistory;
+    procedure AddSQLToHistory(const ASQL: string);
   public
     procedure OpenSelectedTableData(const ATableName: string; TopCount: Integer = 100);
   end;
@@ -178,6 +199,91 @@ end;
 
 { TFBExplorerMainForm }
 
+function GetHistoryFilePath: string;
+var
+  BaseDir: string;
+begin
+  BaseDir := GetEnvironmentVariable('APPDATA');
+  if BaseDir = '' then
+    BaseDir := GetEnvironmentVariable('USERPROFILE');
+  Result := IncludeTrailingPathDelimiter(BaseDir) + 'LazDatabaseExplorer';
+  ForceDirectories(Result);
+  Result := IncludeTrailingPathDelimiter(Result) + 'sql_history.txt';
+end;
+
+procedure TFBExplorerMainForm.LoadSQLHistory;
+var
+  FPath: string;
+begin
+  FPath := GetHistoryFilePath;
+  if FileExists(FPath) then
+  begin
+    ComboSQLHistory.Items.LoadFromFile(FPath);
+    if ComboSQLHistory.Items.Count > 0 then
+      ComboSQLHistory.ItemIndex := 0;
+  end;
+end;
+
+procedure TFBExplorerMainForm.SaveSQLHistory;
+var
+  FPath: string;
+begin
+  FPath := GetHistoryFilePath;
+  try
+    ComboSQLHistory.Items.SaveToFile(FPath);
+  except
+    // ignore
+  end;
+end;
+
+procedure TFBExplorerMainForm.AddSQLToHistory(const ASQL: string);
+var
+  Clean: string;
+  Idx: Integer;
+begin
+  Clean := Trim(ASQL);
+  if Clean = '' then Exit;
+
+  Idx := ComboSQLHistory.Items.IndexOf(Clean);
+  if Idx >= 0 then
+    ComboSQLHistory.Items.Delete(Idx);
+
+  ComboSQLHistory.Items.Insert(0, Clean);
+  while ComboSQLHistory.Items.Count > 30 do
+    ComboSQLHistory.Items.Delete(ComboSQLHistory.Items.Count - 1);
+
+  ComboSQLHistory.ItemIndex := 0;
+  SaveSQLHistory;
+end;
+
+procedure TFBExplorerMainForm.ComboSQLHistoryChange(Sender: TObject);
+begin
+  if ComboSQLHistory.ItemIndex >= 0 then
+    FSynEdit.Text := ComboSQLHistory.Items[ComboSQLHistory.ItemIndex];
+end;
+
+procedure TFBExplorerMainForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_F9 then
+  begin
+    BtnRunSQLClick(Sender);
+    Key := 0;
+  end
+  else if Key = VK_F5 then
+  begin
+    BtnRefreshMetaClick(Sender);
+    Key := 0;
+  end
+  else if (Key = VK_S) and (ssCtrl in Shift) then
+  begin
+    if SQLQuery1.Active and (SQLQuery1.State in [dsEdit, dsInsert]) then
+    begin
+      BtnPostRowClick(Sender);
+      Key := 0;
+    end;
+  end;
+end;
+
 procedure TFBExplorerMainForm.FormCreate(Sender: TObject);
 var
   LastCfg: TFBConnectionConfig;
@@ -185,8 +291,12 @@ begin
   FBExplorerMainForm := Self;
   FBConnManager.OnConnectionChange := @OnConnectionChanged;
 
+  FImageList := CreateMetaDataImageList(Self);
+  TreeViewMeta.Images := FImageList;
+
   InitSynEdit;
   SetupStructGridHeaders;
+  LoadSQLHistory;
 
   PageControlMain.ActivePage := TabSheetSQL;
   PageControlResults.ActivePage := TabSheetGrid;
@@ -200,6 +310,7 @@ end;
 
 procedure TFBExplorerMainForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
+  SaveSQLHistory;
   if SQLQuery1.Active then
     SQLQuery1.Close;
 end;
@@ -329,7 +440,7 @@ end;
 
 procedure TFBExplorerMainForm.AddOrRefreshDatabaseNode(AManager: TFBConnectionManager);
 var
-  RootNode, TablesNode, ViewsNode, ProcsNode, TrigsNode, GensNode, TableNode: TTreeNode;
+  RootNode, TablesNode, ViewsNode, ProcsNode, TrigsNode, GensNode, TableNode, FieldNode, SubNode: TTreeNode;
   List: TStringList;
   I, J: Integer;
   TblName, Title: string;
@@ -369,6 +480,12 @@ begin
     RootNode.DeleteChildren;
   end;
 
+  if AManager.IsConnected then
+    RootNode.ImageIndex := ICON_DB_CONNECTED
+  else
+    RootNode.ImageIndex := ICON_DB_DISCONNECTED;
+  RootNode.SelectedIndex := RootNode.ImageIndex;
+
   if not AManager.IsConnected then Exit;
 
   OldMgr := FBConnManager;
@@ -378,56 +495,93 @@ begin
     // Tabelas
     TablesNode := TreeViewMeta.Items.AddChildObject(RootNode, 'Tabelas',
       TNodeInfo.Create(nkTablesGroup, '', AManager));
+    TablesNode.ImageIndex := ICON_FOLDER;
+    TablesNode.SelectedIndex := ICON_FOLDER;
+
     TFBMetaDataExtractor.GetTables(List, False);
     for I := 0 to List.Count - 1 do
     begin
       TblName := Trim(List[I]);
       TableNode := TreeViewMeta.Items.AddChildObject(TablesNode, TblName,
         TNodeInfo.Create(nkTable, TblName, AManager));
+      TableNode.ImageIndex := ICON_TABLE;
+      TableNode.SelectedIndex := ICON_TABLE;
 
       Flds := TFBMetaDataExtractor.GetTableFields(TblName);
       for J := 0 to High(Flds) do
       begin
         if Flds[J].IsPrimaryKey then
-          TreeViewMeta.Items.AddChildObject(TableNode, Format('PK: %s (%s)', [Flds[J].FieldName, Flds[J].TypeName]),
-            TNodeInfo.Create(nkField, Flds[J].FieldName, AManager))
-        else
-          TreeViewMeta.Items.AddChildObject(TableNode, Format('%s (%s)', [Flds[J].FieldName, Flds[J].TypeName]),
+        begin
+          FieldNode := TreeViewMeta.Items.AddChildObject(TableNode, Format('PK: %s (%s)', [Flds[J].FieldName, Flds[J].TypeName]),
             TNodeInfo.Create(nkField, Flds[J].FieldName, AManager));
+          FieldNode.ImageIndex := ICON_PRIMARY_KEY;
+          FieldNode.SelectedIndex := ICON_PRIMARY_KEY;
+        end
+        else
+        begin
+          FieldNode := TreeViewMeta.Items.AddChildObject(TableNode, Format('%s (%s)', [Flds[J].FieldName, Flds[J].TypeName]),
+            TNodeInfo.Create(nkField, Flds[J].FieldName, AManager));
+          FieldNode.ImageIndex := ICON_FIELD;
+          FieldNode.SelectedIndex := ICON_FIELD;
+        end;
       end;
     end;
 
     // Views
     ViewsNode := TreeViewMeta.Items.AddChildObject(RootNode, 'Views',
       TNodeInfo.Create(nkViewsGroup, '', AManager));
+    ViewsNode.ImageIndex := ICON_FOLDER;
+    ViewsNode.SelectedIndex := ICON_FOLDER;
     TFBMetaDataExtractor.GetViews(List);
     for I := 0 to List.Count - 1 do
-      TreeViewMeta.Items.AddChildObject(ViewsNode, List[I],
+    begin
+      SubNode := TreeViewMeta.Items.AddChildObject(ViewsNode, List[I],
         TNodeInfo.Create(nkView, List[I], AManager));
+      SubNode.ImageIndex := ICON_VIEW;
+      SubNode.SelectedIndex := ICON_VIEW;
+    end;
 
     // Procedures
     ProcsNode := TreeViewMeta.Items.AddChildObject(RootNode, 'Procedures',
       TNodeInfo.Create(nkProcsGroup, '', AManager));
+    ProcsNode.ImageIndex := ICON_FOLDER;
+    ProcsNode.SelectedIndex := ICON_FOLDER;
     TFBMetaDataExtractor.GetProcedures(List);
     for I := 0 to List.Count - 1 do
-      TreeViewMeta.Items.AddChildObject(ProcsNode, List[I],
+    begin
+      SubNode := TreeViewMeta.Items.AddChildObject(ProcsNode, List[I],
         TNodeInfo.Create(nkProc, List[I], AManager));
+      SubNode.ImageIndex := ICON_PROCEDURE;
+      SubNode.SelectedIndex := ICON_PROCEDURE;
+    end;
 
     // Triggers
     TrigsNode := TreeViewMeta.Items.AddChildObject(RootNode, 'Triggers',
       TNodeInfo.Create(nkTrigsGroup, '', AManager));
+    TrigsNode.ImageIndex := ICON_FOLDER;
+    TrigsNode.SelectedIndex := ICON_FOLDER;
     TFBMetaDataExtractor.GetTriggers(List);
     for I := 0 to List.Count - 1 do
-      TreeViewMeta.Items.AddChildObject(TrigsNode, List[I],
+    begin
+      SubNode := TreeViewMeta.Items.AddChildObject(TrigsNode, List[I],
         TNodeInfo.Create(nkTrig, List[I], AManager));
+      SubNode.ImageIndex := ICON_TRIGGER;
+      SubNode.SelectedIndex := ICON_TRIGGER;
+    end;
 
     // Sequences / Generators
     GensNode := TreeViewMeta.Items.AddChildObject(RootNode, 'Sequences / Generators',
       TNodeInfo.Create(nkGensGroup, '', AManager));
+    GensNode.ImageIndex := ICON_FOLDER;
+    GensNode.SelectedIndex := ICON_FOLDER;
     TFBMetaDataExtractor.GetGenerators(List);
     for I := 0 to List.Count - 1 do
-      TreeViewMeta.Items.AddChildObject(GensNode, List[I],
+    begin
+      SubNode := TreeViewMeta.Items.AddChildObject(GensNode, List[I],
         TNodeInfo.Create(nkGen, List[I], AManager));
+      SubNode.ImageIndex := ICON_GENERATOR;
+      SubNode.SelectedIndex := ICON_GENERATOR;
+    end;
 
     RootNode.Expand(False);
     TablesNode.Expand(False);
@@ -554,6 +708,7 @@ begin
 
         ElapsedMs := GetTickCount64 - StartTime;
         PageControlResults.ActivePage := TabSheetGrid;
+        AddSQLToHistory(Sql);
         LogMsg(Format('Consulta SELECT concluída em %d ms. Registros carregados.', [ElapsedMs]));
         StatusBar1.Panels[1].Text := Format('Linhas: %d | Tempo: %d ms (Edição Habilitada)', [SQLQuery1.RecordCount, ElapsedMs]);
       end
@@ -561,7 +716,7 @@ begin
       begin
         FBConnManager.ExecuteDirect(Sql, Rows);
         ElapsedMs := GetTickCount64 - StartTime;
-
+        AddSQLToHistory(Sql);
         PageControlResults.ActivePage := TabSheetLog;
         LogMsg(Format('Comando executado com sucesso em %d ms. Linhas afetadas: %d.', [ElapsedMs, Rows]));
         StatusBar1.Panels[1].Text := Format('Afetadas: %d | Tempo: %d ms', [Rows, ElapsedMs]);
@@ -684,7 +839,20 @@ end;
 procedure TFBExplorerMainForm.TreeViewMetaDblClick(Sender: TObject);
 var
   Tbl: string;
+  Node: TTreeNode;
+  Info: TNodeInfo;
 begin
+  Node := TreeViewMeta.Selected;
+  if (Node <> nil) and (Node.Data <> nil) then
+  begin
+    Info := TNodeInfo(Node.Data);
+    if Info.Kind = nkGen then
+    begin
+      TFBGeneratorForm.Execute(Info.Name);
+      Exit;
+    end;
+  end;
+
   Tbl := GetSelectedTableName;
   if Tbl <> '' then
     OpenSelectedTableData(Tbl, 100);
@@ -707,6 +875,26 @@ begin
   Tbl := GetSelectedTableName;
   if Tbl <> '' then
     OpenSelectedTableData(Tbl, 100);
+end;
+
+procedure TFBExplorerMainForm.MenuItemExportTableClick(Sender: TObject);
+var
+  Tbl: string;
+begin
+  Tbl := GetSelectedTableName;
+  if Tbl = '' then Exit;
+  OpenSelectedTableData(Tbl, 100);
+  TFBDataExportForm.Execute(SQLQuery1, Tbl);
+end;
+
+procedure TFBExplorerMainForm.MenuItemGeneratorsClick(Sender: TObject);
+begin
+  BtnGeneratorsClick(Sender);
+end;
+
+procedure TFBExplorerMainForm.BtnGeneratorsClick(Sender: TObject);
+begin
+  TFBGeneratorForm.Execute;
 end;
 
 procedure TFBExplorerMainForm.MenuItemDDLClick(Sender: TObject);
@@ -879,6 +1067,22 @@ begin
     LogMsg('Dados recarregados.');
     StatusBar1.Panels[1].Text := Format('Registros: %d', [SQLQuery1.RecordCount]);
   end;
+end;
+
+procedure TFBExplorerMainForm.BtnExportDataClick(Sender: TObject);
+begin
+  if not SQLQuery1.Active or SQLQuery1.IsEmpty then
+  begin
+    ShowMessage('Não há dados ativos para exportação.');
+    Exit;
+  end;
+  TFBDataExportForm.Execute(SQLQuery1, GetSelectedTableName);
+end;
+
+procedure TFBExplorerMainForm.DBGridResultsDblClick(Sender: TObject);
+begin
+  if (DBGridResults.SelectedField <> nil) then
+    TFBCellViewerForm.Execute(DBGridResults.SelectedField);
 end;
 
 { Edição da Estrutura de Campos (Alter Table) }

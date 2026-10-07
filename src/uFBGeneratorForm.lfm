@@ -1,0 +1,201 @@
+object FBGeneratorForm: TFBGeneratorForm
+  Left = 360
+  Height = 440
+  Top = 180
+  Width = 520
+  Caption = 'Gerenciador de Sequences / Generators'
+  ClientHeight = 440
+  ClientWidth = 520
+  Position = poScreenCenter
+  LCLVersion = '2.2.0.0'
+  OnCreate = FormCreate
+  object PanelTop: TPanel
+    Left = 0
+    Height = 46
+    Top = 0
+    Width = 520
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 46
+    ClientWidth = 520
+    Color = 15724527
+    ParentColor = False
+    TabOrder = 0
+    object LabelTitle: TLabel
+      Left = 14
+      Height = 21
+      Top = 12
+      Width = 320
+      Caption = '🔢 Gerenciador de Sequences / Generators'
+      Font.Height = -16
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object PanelCenter: TPanel
+    Left = 0
+    Height = 344
+    Top = 46
+    Width = 520
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 344
+    ClientWidth = 520
+    TabOrder = 1
+    object LabelGenName: TLabel
+      Left = 16
+      Height = 15
+      Top = 16
+      Width = 144
+      Caption = 'Sequence / Generator Ativo:'
+      ParentColor = False
+    end
+    object ComboGenerators: TComboBox
+      Left = 16
+      Height = 23
+      Top = 36
+      Width = 380
+      ItemHeight = 15
+      OnChange = ComboGeneratorsChange
+      Style = csDropDownList
+      TabOrder = 0
+    end
+    object BtnDropGen: TButton
+      Left = 404
+      Height = 24
+      Top = 35
+      Width = 100
+      Caption = '🗑️ Excluir'
+      OnClick = BtnDropGenClick
+      TabOrder = 1
+    end
+    object LabelCurrentVal: TLabel
+      Left = 16
+      Height = 15
+      Top = 76
+      Width = 60
+      Caption = 'Valor Atual:'
+      ParentColor = False
+    end
+    object EditCurrentVal: TEdit
+      Left = 16
+      Height = 23
+      Top = 96
+      Width = 200
+      Color = clBtnFace
+      ReadOnly = True
+      TabOrder = 2
+      Text = '0'
+    end
+    object BtnRefreshVal: TButton
+      Left = 224
+      Height = 24
+      Top = 95
+      Width = 85
+      Caption = '🔄 Atualizar'
+      OnClick = BtnRefreshValClick
+      TabOrder = 3
+    end
+    object LabelNewVal: TLabel
+      Left = 16
+      Height = 15
+      Top = 136
+      Width = 105
+      Caption = 'Definir Novo Valor:'
+      ParentColor = False
+    end
+    object EditNewVal: TEdit
+      Left = 16
+      Height = 23
+      Top = 156
+      Width = 200
+      TabOrder = 4
+      Text = '0'
+    end
+    object BtnApplyVal: TButton
+      Left = 224
+      Height = 24
+      Top = 155
+      Width = 130
+      Caption = '✔ Salvar Novo Valor'
+      Font.Style = [fsBold]
+      OnClick = BtnApplyValClick
+      ParentFont = False
+      TabOrder = 5
+    end
+    object GroupBoxCreate: TGroupBox
+      Left = 16
+      Height = 110
+      Top = 200
+      Width = 488
+      Caption = ' Criar Nova Sequence / Generator '
+      ClientHeight = 90
+      ClientWidth = 484
+      TabOrder = 6
+      object LabelNewGenName: TLabel
+        Left = 12
+        Height = 15
+        Top = 10
+        Width = 104
+        Caption = 'Nome da Sequence:'
+        ParentColor = False
+      end
+      object EditNewGenName: TEdit
+        Left = 12
+        Height = 23
+        Top = 30
+        Width = 240
+        TabOrder = 0
+      end
+      object LabelInitialVal: TLabel
+        Left = 265
+        Height = 15
+        Top = 10
+        Width = 65
+        Caption = 'Valor Inicial:'
+        ParentColor = False
+      end
+      object EditInitialVal: TEdit
+        Left = 265
+        Height = 23
+        Top = 30
+        Width = 100
+        TabOrder = 1
+        Text = '0'
+      end
+      object BtnCreateGen: TButton
+        Left = 12
+        Height = 26
+        Top = 60
+        Width = 150
+        Caption = '➕ Criar Sequence'
+        Font.Style = [fsBold]
+        OnClick = BtnCreateGenClick
+        ParentFont = False
+        TabOrder = 2
+      end
+    end
+  end
+  object PanelBottom: TPanel
+    Left = 0
+    Height = 50
+    Top = 390
+    Width = 520
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 50
+    ClientWidth = 520
+    TabOrder = 2
+    object BtnClose: TButton
+      Left = 412
+      Height = 32
+      Top = 9
+      Width = 92
+      Anchors = [akTop, akRight]
+      Caption = 'Fechar'
+      OnClick = BtnCloseClick
+      TabOrder = 0
+    end
+  end
+end

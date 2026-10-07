@@ -58,6 +58,12 @@ type
     class function DropConstraintSQL(const ATableName, AConstraintName: string): string;
     class function AddForeignKeySQL(const ATableName: string; const FK: TForeignKeyDef): string;
     class function AddPrimaryKeySQL(const ATableName, APKName, APKFields: string): string;
+
+    { Generator / Sequence Helpers }
+    class function GetGeneratorValue(const AGenName: string): Int64;
+    class procedure SetGeneratorValue(const AGenName: string; AVal: Int64);
+    class procedure CreateGenerator(const AGenName: string; AInitialVal: Int64 = 0);
+    class procedure DropGenerator(const AGenName: string);
   end;
 
 implementation
@@ -492,6 +498,53 @@ begin
     CName := 'PK_' + UpperCase(Trim(ATableName));
   Result := Format('ALTER TABLE %s ADD CONSTRAINT %s PRIMARY KEY (%s);',
     [UpperCase(Trim(ATableName)), CName, UpperCase(Trim(APKFields))]);
+end;
+
+class function TFBMetaDataExtractor.GetGeneratorValue(const AGenName: string): Int64;
+var
+  Qry: TSQLQuery;
+  Sql: string;
+begin
+  Result := 0;
+  if not FBConnManager.IsConnected then Exit;
+  Qry := TSQLQuery.Create(nil);
+  try
+    Qry.DataBase := FBConnManager.Connection;
+    Qry.Transaction := FBConnManager.Transaction;
+    Sql := Format('SELECT GEN_ID(%s, 0) AS CUR_VAL FROM RDB$DATABASE;', [UpperCase(Trim(AGenName))]);
+    Qry.SQL.Text := Sql;
+    Qry.Open;
+    if not Qry.EOF then
+      Result := Qry.FieldByName('CUR_VAL').AsLargeInt;
+  finally
+    Qry.Free;
+  end;
+end;
+
+class procedure TFBMetaDataExtractor.SetGeneratorValue(const AGenName: string; AVal: Int64);
+var
+  Rows: Integer;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  FBConnManager.ExecuteDirect(Format('SET GENERATOR %s TO %d;', [UpperCase(Trim(AGenName)), AVal]), Rows);
+end;
+
+class procedure TFBMetaDataExtractor.CreateGenerator(const AGenName: string; AInitialVal: Int64);
+var
+  Rows: Integer;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  FBConnManager.ExecuteDirect(Format('CREATE SEQUENCE %s;', [UpperCase(Trim(AGenName))]), Rows);
+  if AInitialVal <> 0 then
+    SetGeneratorValue(AGenName, AInitialVal);
+end;
+
+class procedure TFBMetaDataExtractor.DropGenerator(const AGenName: string);
+var
+  Rows: Integer;
+begin
+  if not FBConnManager.IsConnected then Exit;
+  FBConnManager.ExecuteDirect(Format('DROP SEQUENCE %s;', [UpperCase(Trim(AGenName))]), Rows);
 end;
 
 end.

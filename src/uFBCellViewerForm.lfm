@@ -1,0 +1,124 @@
+object FBCellViewerForm: TFBCellViewerForm
+  Left = 350
+  Height = 480
+  Top = 150
+  Width = 600
+  Caption = 'Visualizador e Editor de Campo / Conteúdo'
+  ClientHeight = 480
+  ClientWidth = 600
+  Position = poScreenCenter
+  LCLVersion = '2.2.0.0'
+  OnCreate = FormCreate
+  object PanelTop: TPanel
+    Left = 0
+    Height = 56
+    Top = 0
+    Width = 600
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 56
+    ClientWidth = 600
+    Color = 15724527
+    ParentColor = False
+    TabOrder = 0
+    object LabelFieldName: TLabel
+      Left = 14
+      Height = 17
+      Top = 10
+      Width = 120
+      Caption = 'Campo: NOME'
+      Font.Height = -13
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+    end
+    object LabelFieldType: TLabel
+      Left = 14
+      Height = 15
+      Top = 32
+      Width = 100
+      Caption = 'Tipo: ftString'
+      Font.Color = clGray
+      ParentColor = False
+      ParentFont = False
+    end
+    object LabelLength: TLabel
+      Left = 320
+      Height = 15
+      Top = 32
+      Width = 150
+      Caption = 'Tamanho: 0 caracteres'
+      Font.Color = clGray
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object MemoContent: TMemo
+    Left = 0
+    Height = 372
+    Top = 56
+    Width = 600
+    Align = alClient
+    Font.Name = 'Courier New'
+    Font.Size = 10
+    OnChange = MemoContentChange
+    ParentFont = False
+    ScrollBars = ssBoth
+    TabOrder = 1
+  end
+  object PanelBottom: TPanel
+    Left = 0
+    Height = 52
+    Top = 428
+    Width = 600
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 52
+    ClientWidth = 600
+    TabOrder = 2
+    object BtnSaveToField: TButton
+      Left = 14
+      Height = 34
+      Top = 9
+      Width = 160
+      Caption = '✔ Salvar no Campo'
+      Font.Style = [fsBold]
+      OnClick = BtnSaveToFieldClick
+      ParentFont = False
+      TabOrder = 0
+    end
+    object BtnCopy: TButton
+      Left = 182
+      Height = 34
+      Top = 9
+      Width = 130
+      Caption = '📋 Copiar Texto'
+      OnClick = BtnCopyClick
+      TabOrder = 1
+    end
+    object BtnSaveToFile: TButton
+      Left = 320
+      Height = 34
+      Top = 9
+      Width = 150
+      Caption = '💾 Salvar em TXT...'
+      OnClick = BtnSaveToFileClick
+      TabOrder = 2
+    end
+    object BtnClose: TButton
+      Left = 502
+      Height = 34
+      Top = 9
+      Width = 84
+      Anchors = [akTop, akRight]
+      Caption = 'Fechar'
+      OnClick = BtnCloseClick
+      TabOrder = 3
+    end
+  end
+  object SaveDialogFile: TSaveDialog
+    Options = [ofOverwritePrompt, ofEnableSizing, ofViewDetail]
+    Left = 520
+    Top = 10
+  end
+end

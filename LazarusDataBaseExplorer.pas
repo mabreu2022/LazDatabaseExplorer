@@ -8,10 +8,10 @@ unit LazarusDataBaseExplorer;
 interface
 
 uses
-  uFBExplorerRegister, uFBExplorerMainForm, uFBConnectionManager,
-  uFBMetaData, uFBConnectionDialog, uFBCreateTableForm, uFBConstraintForm,
-  uFBAlterFieldForm, uFBTypes,
-  LazarusPackageIntf;
+  uFBExplorerRegister, uFBExplorerMainForm, uFBConnectionManager, uFBMetaData, 
+  uFBConnectionDialog, uFBCreateTableForm, uFBConstraintForm, 
+  uFBAlterFieldForm, uFBTypes, uFBDataExportForm, uFBGeneratorForm, 
+  uFBCellViewerForm, uFBTreeIcons, LazarusPackageIntf;
 
 implementation
 

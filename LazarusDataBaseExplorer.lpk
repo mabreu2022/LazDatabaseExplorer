@@ -79,6 +79,34 @@ Includes schema browser, visual table creator wizard, SQL runner and metadata ma
         <Filename Value="src/uFBTypes.pas"/>
         <UnitName Value="uFBTypes"/>
       </Item>
+      <Item>
+        <Filename Value="src/uFBDataExportForm.pas"/>
+        <UnitName Value="uFBDataExportForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBDataExportForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBGeneratorForm.pas"/>
+        <UnitName Value="uFBGeneratorForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBGeneratorForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBCellViewerForm.pas"/>
+        <UnitName Value="uFBCellViewerForm"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBCellViewerForm.lfm"/>
+        <Type Value="LFM"/>
+      </Item>
+      <Item>
+        <Filename Value="src/uFBTreeIcons.pas"/>
+        <UnitName Value="uFBTreeIcons"/>
+      </Item>
     </Files>
     <RequiredPkgs>
       <Item>

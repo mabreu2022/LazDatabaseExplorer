@@ -34,7 +34,7 @@
         <PackageName Value="SynEdit"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="13">
       <Unit0>
         <Filename Value="FBExplorerApp.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -94,6 +94,35 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="uFBAlterFieldForm"/>
       </Unit8>
+      <Unit9>
+        <Filename Value="src/uFBDataExportForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FBDataExportForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="uFBDataExportForm"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="src/uFBGeneratorForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FBGeneratorForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="uFBGeneratorForm"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="src/uFBCellViewerForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FBCellViewerForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="uFBCellViewerForm"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="src/uFBTreeIcons.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="uFBTreeIcons"/>
+      </Unit12>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -8,8 +8,10 @@ object FBExplorerMainForm: TFBExplorerMainForm
   ClientWidth = 1000
   Position = poScreenCenter
   LCLVersion = '2.2.0.0'
+  KeyPreview = True
   OnClose = FormClose
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   object PanelTopToolbar: TPanel
     Left = 0
     Height = 44
@@ -94,6 +96,15 @@ object FBExplorerMainForm: TFBExplorerMainForm
       OnClick = BtnConstraintsClick
       TabOrder = 7
     end
+    object BtnGenerators: TButton
+      Left = 932
+      Height = 32
+      Top = 6
+      Width = 110
+      Caption = '🔢 Sequences'
+      OnClick = BtnGeneratorsClick
+      TabOrder = 8
+    end
   end
   object PanelClient: TPanel
     Left = 0
@@ -151,10 +162,42 @@ object FBExplorerMainForm: TFBExplorerMainForm
         Caption = 'Editor SQL'
         ClientHeight = 555
         ClientWidth = 707
+        object PanelSQLBar: TPanel
+          Left = 0
+          Height = 32
+          Top = 0
+          Width = 707
+          Align = alTop
+          BevelOuter = bvNone
+          ClientHeight = 32
+          ClientWidth = 707
+          Color = 16185078
+          ParentColor = False
+          TabOrder = 3
+          object LabelHistory: TLabel
+            Left = 8
+            Height = 15
+            Top = 8
+            Width = 65
+            Caption = '📜 Histórico:'
+            ParentColor = False
+          end
+          object ComboSQLHistory: TComboBox
+            Left = 78
+            Height = 23
+            Top = 5
+            Width = 620
+            Anchors = [akTop, akLeft, akRight]
+            ItemHeight = 15
+            OnChange = ComboSQLHistoryChange
+            Style = csDropDownList
+            TabOrder = 0
+          end
+        end
         object PanelEditorContainer: TPanel
           Left = 0
-          Height = 250
-          Top = 0
+          Height = 220
+          Top = 32
           Width = 707
           Align = alTop
           BevelOuter = bvNone
@@ -239,12 +282,23 @@ object FBExplorerMainForm: TFBExplorerMainForm
                 OnClick = BtnRefreshDataClick
                 TabOrder = 4
               end
+              object BtnExportData: TButton
+                Left = 538
+                Height = 26
+                Top = 5
+                Width = 115
+                Caption = '📤 Exportar...'
+                Font.Style = [fsBold]
+                OnClick = BtnExportDataClick
+                ParentFont = False
+                TabOrder = 5
+              end
               object LabelDataHint: TLabel
-                Left = 540
+                Left = 662
                 Height = 15
                 Top = 10
-                Width = 150
-                Caption = 'Edição inline habilitada.'
+                Width = 120
+                Caption = 'Duplo clique p/ campo'
                 Font.Color = clGray
                 ParentColor = False
                 ParentFont = False
@@ -261,6 +315,7 @@ object FBExplorerMainForm: TFBExplorerMainForm
               DataSource = DataSource1
               Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
               TabOrder = 1
+              OnDblClick = DBGridResultsDblClick
             end
           end
           object TabSheetLog: TTabSheet
@@ -429,6 +484,10 @@ object FBExplorerMainForm: TFBExplorerMainForm
       Caption = 'Visualizar Primeiros 100 Registros'
       OnClick = MenuItemSelectTopClick
     end
+    object MenuItemExportTable: TMenuItem
+      Caption = '📤 Exportar Dados desta Tabela...'
+      OnClick = MenuItemExportTableClick
+    end
     object MenuItemConstraints: TMenuItem
       Caption = '🔑 Gerenciar Chaves e FKs (IBExpert)...'
       OnClick = BtnConstraintsClick
@@ -443,6 +502,10 @@ object FBExplorerMainForm: TFBExplorerMainForm
     object MenuItemNewTable: TMenuItem
       Caption = 'Criar Nova Tabela...'
       OnClick = BtnNewTableClick
+    end
+    object MenuItemGenerators: TMenuItem
+      Caption = '🔢 Gerenciar Sequences / Generators...'
+      OnClick = MenuItemGeneratorsClick
     end
     object MenuItemDDL: TMenuItem
       Caption = 'Ver Script DDL (CREATE TABLE)'
