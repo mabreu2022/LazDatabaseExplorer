@@ -175,7 +175,6 @@ object FBExplorerMainForm: TFBExplorerMainForm
       Height = 583
       Top = 0
       Width = 5
-      BevelOuter = bvNone
     end
     object PageControlMain: TPageControl
       Left = 285
