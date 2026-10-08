@@ -179,7 +179,7 @@ object FBAlterFieldForm: TFBAlterFieldForm
         Height = 23
         Top = 12
         Width = 190
-        OnChange = FieldParamChange
+        OnChange = ComboAlterFieldChange
         Style = csDropDownList
         TabOrder = 0
       end
@@ -250,7 +250,7 @@ object FBAlterFieldForm: TFBAlterFieldForm
         Height = 23
         Top = 14
         Width = 220
-        OnChange = FieldParamChange
+        OnChange = ComboRenameFieldChange
         Style = csDropDownList
         TabOrder = 0
       end

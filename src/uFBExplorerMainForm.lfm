@@ -58,70 +58,79 @@ object FBExplorerMainForm: TFBExplorerMainForm
       OnClick = BtnNewTableClick
       TabOrder = 3
     end
-    object BtnRunSQL: TButton
-      Left = 462
+    object BtnAlterTable: TButton
+      Left = 460
       Height = 32
       Top = 6
-      Width = 120
+      Width = 110
+      Caption = '🛠️ Alterar Tabela'
+      OnClick = BtnAlterTableClick
+      TabOrder = 4
+    end
+    object BtnRunSQL: TButton
+      Left = 574
+      Height = 32
+      Top = 6
+      Width = 115
       Caption = '▶ Executar (F9)'
       Font.Style = [fsBold]
       OnClick = BtnRunSQLClick
       ParentFont = False
-      TabOrder = 4
+      TabOrder = 5
     end
     object BtnCommit: TButton
-      Left = 588
+      Left = 693
+      Height = 32
+      Top = 6
+      Width = 70
+      Caption = '✔ Commit'
+      OnClick = BtnCommitClick
+      TabOrder = 6
+    end
+    object BtnRollback: TButton
+      Left = 767
       Height = 32
       Top = 6
       Width = 75
-      Caption = '✔ Commit'
-      OnClick = BtnCommitClick
-      TabOrder = 5
-    end
-    object BtnRollback: TButton
-      Left = 668
-      Height = 32
-      Top = 6
-      Width = 80
       Caption = '✖ Rollback'
       OnClick = BtnRollbackClick
-      TabOrder = 6
-    end
-    object BtnConstraints: TButton
-      Left = 754
-      Height = 32
-      Top = 6
-      Width = 115
-      Caption = '🔑 Chaves'
-      OnClick = BtnConstraintsClick
       TabOrder = 7
     end
-    object BtnGenerators: TButton
-      Left = 874
+    object BtnConstraints: TButton
+      Left = 846
       Height = 32
       Top = 6
-      Width = 90
-      Caption = '🔢 Sequences'
-      OnClick = BtnGeneratorsClick
+      Width = 85
+      Caption = '🔑 Chaves'
+      OnClick = BtnConstraintsClick
       TabOrder = 8
     end
-    object BtnHealth: TButton
-      Left = 970
+    object BtnGenerators: TButton
+      Left = 935
       Height = 32
       Top = 6
-      Width = 80
-      Caption = '🩺 Saúde'
-      OnClick = BtnHealthClick
+      Width = 85
+      Caption = '🔢 Sequences'
+      OnClick = BtnGeneratorsClick
       TabOrder = 9
     end
-    object BtnExtractAllDDL: TButton
-      Left = 1056
+    object BtnHealth: TButton
+      Left = 1024
       Height = 32
       Top = 6
-      Width = 90
+      Width = 70
+      Caption = '🩺 Saúde'
+      OnClick = BtnHealthClick
+      TabOrder = 10
+    end
+    object BtnExtractAllDDL: TButton
+      Left = 1098
+      Height = 32
+      Top = 6
+      Width = 85
       Caption = '📜 DDL Full'
       OnClick = BtnExtractAllDDLClick
-      TabOrder = 10
+      TabOrder = 11
     end
   end
   object PanelClient: TPanel
@@ -400,58 +409,67 @@ object FBExplorerMainForm: TFBExplorerMainForm
             ParentFont = False
           end
           object BtnAddField: TButton
-            Left = 175
+            Left = 160
             Height = 26
             Top = 6
-            Width = 115
+            Width = 110
             Caption = '➕ Adicionar Campo'
             OnClick = BtnAddFieldClick
             TabOrder = 0
           end
           object BtnAlterFieldType: TButton
-            Left = 296
+            Left = 274
             Height = 26
             Top = 6
-            Width = 110
+            Width = 100
             Caption = '✏️ Alterar Tipo'
             OnClick = BtnAlterFieldTypeClick
             TabOrder = 1
           end
           object BtnRenameField: TButton
-            Left = 412
+            Left = 378
             Height = 26
             Top = 6
-            Width = 95
+            Width = 90
             Caption = '🔤 Renomear'
             OnClick = BtnRenameFieldClick
             TabOrder = 2
           end
           object BtnDropField: TButton
-            Left = 513
+            Left = 472
             Height = 26
             Top = 6
-            Width = 85
+            Width = 80
             Caption = '🗑️ Excluir'
             OnClick = BtnDropFieldClick
             TabOrder = 3
           end
-          object BtnRefreshStruct: TButton
-            Left = 604
+          object BtnStructConstraints: TButton
+            Left = 556
             Height = 26
             Top = 6
-            Width = 95
-            Caption = '🔄 Atualizar'
-            OnClick = BtnRefreshStructClick
+            Width = 85
+            Caption = '🔑 Chaves...'
+            OnClick = BtnConstraintsClick
             TabOrder = 4
           end
           object BtnIndices: TButton
-            Left = 705
+            Left = 645
             Height = 26
             Top = 6
-            Width = 90
+            Width = 80
             Caption = '⚡ Índices...'
             OnClick = BtnIndicesClick
             TabOrder = 5
+          end
+          object BtnRefreshStruct: TButton
+            Left = 729
+            Height = 26
+            Top = 6
+            Width = 80
+            Caption = '🔄 Atualizar'
+            OnClick = BtnRefreshStructClick
+            TabOrder = 6
           end
         end
         object GridStructFields: TStringGrid
@@ -464,8 +482,10 @@ object FBExplorerMainForm: TFBExplorerMainForm
           DefaultRowHeight = 22
           FixedCols = 0
           Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
+          PopupMenu = PopupMenuGridStruct
           RowCount = 1
           TabOrder = 1
+          OnDblClick = GridStructFieldsDblClick
         end
         object SplitterStruct: TSplitter
           Cursor = crVSplit
@@ -524,6 +544,7 @@ object FBExplorerMainForm: TFBExplorerMainForm
     Top = 380
   end
   object PopupMenuTree: TPopupMenu
+    OnPopup = PopupMenuTreePopup
     Left = 100
     Top = 200
     object MenuItemSelectTop: TMenuItem
@@ -598,6 +619,44 @@ object FBExplorerMainForm: TFBExplorerMainForm
     object MenuItemRefresh: TMenuItem
       Caption = 'Atualizar Metadados'
       OnClick = BtnRefreshMetaClick
+    end
+  end
+  object PopupMenuGridStruct: TPopupMenu
+    Left = 400
+    Top = 200
+    object MenuItemGridAlterType: TMenuItem
+      Caption = '✏️ Alterar Tipo / Tamanho deste Campo (Duplo Clique)...'
+      OnClick = BtnAlterFieldTypeClick
+    end
+    object MenuItemGridAdd: TMenuItem
+      Caption = '➕ Adicionar Novo Campo...'
+      OnClick = BtnAddFieldClick
+    end
+    object MenuItemGridRename: TMenuItem
+      Caption = '🔤 Renomear este Campo...'
+      OnClick = BtnRenameFieldClick
+    end
+    object MenuItemGridDrop: TMenuItem
+      Caption = '🗑️ Excluir este Campo (DROP)...'
+      OnClick = BtnDropFieldClick
+    end
+    object MenuItemGridSep1: TMenuItem
+      Caption = '-'
+    end
+    object MenuItemGridKeys: TMenuItem
+      Caption = '🔑 Gerenciar Chaves e Constraints (PK/FK)...'
+      OnClick = BtnConstraintsClick
+    end
+    object MenuItemGridIndices: TMenuItem
+      Caption = '⚡ Gerenciar Índices da Tabela...'
+      OnClick = BtnIndicesClick
+    end
+    object MenuItemGridSep2: TMenuItem
+      Caption = '-'
+    end
+    object MenuItemGridRefresh: TMenuItem
+      Caption = '🔄 Recarregar Estrutura da Tabela'
+      OnClick = BtnRefreshStructClick
     end
   end
 end

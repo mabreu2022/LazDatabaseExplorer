@@ -69,10 +69,13 @@ type
     procedure FormCreate(Sender: TObject);
     procedure RadioGroupOperationClick(Sender: TObject);
     procedure FieldParamChange(Sender: TObject);
+    procedure ComboAlterFieldChange(Sender: TObject);
+    procedure ComboRenameFieldChange(Sender: TObject);
     procedure BtnExecuteClick(Sender: TObject);
     procedure BtnCopySQLClick(Sender: TObject);
   private
     FTableName: string;
+    FFields: TFBMetaFieldList;
     procedure PopulateFieldsList(const ASelectedField: string);
     function GenerateDDL: string;
     procedure UpdateDDL;
@@ -104,35 +107,113 @@ begin
   end;
   ComboAddType.ItemIndex := 0;      // VARCHAR
   ComboAlterNewType.ItemIndex := 0; // VARCHAR
+  EditAddSize.Text := '100';
 end;
 
 procedure TFBAlterFieldForm.PopulateFieldsList(const ASelectedField: string);
 var
-  List: TStringList;
+  I, Idx: Integer;
 begin
-  List := TStringList.Create;
-  try
-    TFBMetaDataExtractor.GetTableFieldNames(FTableName, List);
+  FFields := TFBMetaDataExtractor.GetTableFields(FTableName);
 
-    ComboAlterField.Items.Assign(List);
-    ComboRenameField.Items.Assign(List);
-    ComboDropField.Items.Assign(List);
+  ComboAlterField.Items.Clear;
+  ComboRenameField.Items.Clear;
+  ComboDropField.Items.Clear;
 
-    if ASelectedField <> '' then
-    begin
-      ComboAlterField.Text := ASelectedField;
-      ComboRenameField.Text := ASelectedField;
-      ComboDropField.Text := ASelectedField;
-    end
-    else
-    begin
-      if ComboAlterField.Items.Count > 0 then ComboAlterField.ItemIndex := 0;
-      if ComboRenameField.Items.Count > 0 then ComboRenameField.ItemIndex := 0;
-      if ComboDropField.Items.Count > 0 then ComboDropField.ItemIndex := 0;
-    end;
-  finally
-    List.Free;
+  for I := 0 to High(FFields) do
+  begin
+    ComboAlterField.Items.Add(FFields[I].FieldName);
+    ComboRenameField.Items.Add(FFields[I].FieldName);
+    ComboDropField.Items.Add(FFields[I].FieldName);
   end;
+
+  if ASelectedField <> '' then
+  begin
+    Idx := ComboAlterField.Items.IndexOf(ASelectedField);
+    if Idx >= 0 then
+      ComboAlterField.ItemIndex := Idx
+    else if ComboAlterField.Items.Count > 0 then
+      ComboAlterField.ItemIndex := 0;
+
+    Idx := ComboRenameField.Items.IndexOf(ASelectedField);
+    if Idx >= 0 then
+      ComboRenameField.ItemIndex := Idx
+    else if ComboRenameField.Items.Count > 0 then
+      ComboRenameField.ItemIndex := 0;
+
+    Idx := ComboDropField.Items.IndexOf(ASelectedField);
+    if Idx >= 0 then
+      ComboDropField.ItemIndex := Idx
+    else if ComboDropField.Items.Count > 0 then
+      ComboDropField.ItemIndex := 0;
+  end
+  else
+  begin
+    if ComboAlterField.Items.Count > 0 then ComboAlterField.ItemIndex := 0;
+    if ComboRenameField.Items.Count > 0 then ComboRenameField.ItemIndex := 0;
+    if ComboDropField.Items.Count > 0 then ComboDropField.ItemIndex := 0;
+  end;
+
+  ComboAlterFieldChange(ComboAlterField);
+  ComboRenameFieldChange(ComboRenameField);
+end;
+
+procedure TFBAlterFieldForm.ComboAlterFieldChange(Sender: TObject);
+var
+  Sel: string;
+  I, FoundIdx: Integer;
+  BaseType: string;
+begin
+  Sel := UpperCase(Trim(ComboAlterField.Text));
+  for I := 0 to High(FFields) do
+  begin
+    if UpperCase(Trim(FFields[I].FieldName)) = Sel then
+    begin
+      BaseType := UpperCase(Trim(FFields[I].TypeName));
+      if Pos('VARCHAR', BaseType) = 1 then
+      begin
+        FoundIdx := ComboAlterNewType.Items.IndexOf('VARCHAR');
+        if FoundIdx >= 0 then ComboAlterNewType.ItemIndex := FoundIdx;
+        EditAlterNewSize.Text := IntToStr(FFields[I].FieldLength);
+        EditAlterNewScale.Text := '0';
+      end
+      else if Pos('CHAR', BaseType) = 1 then
+      begin
+        FoundIdx := ComboAlterNewType.Items.IndexOf('CHAR');
+        if FoundIdx >= 0 then ComboAlterNewType.ItemIndex := FoundIdx;
+        EditAlterNewSize.Text := IntToStr(FFields[I].FieldLength);
+        EditAlterNewScale.Text := '0';
+      end
+      else if (Pos('NUMERIC', BaseType) = 1) or (Pos('DECIMAL', BaseType) = 1) then
+      begin
+        if Pos('NUMERIC', BaseType) = 1 then
+          FoundIdx := ComboAlterNewType.Items.IndexOf('NUMERIC')
+        else
+          FoundIdx := ComboAlterNewType.Items.IndexOf('DECIMAL');
+        if FoundIdx >= 0 then ComboAlterNewType.ItemIndex := FoundIdx;
+        EditAlterNewSize.Text := IntToStr(FFields[I].FieldLength);
+        EditAlterNewScale.Text := IntToStr(Abs(FFields[I].FieldScale));
+      end
+      else
+      begin
+        FoundIdx := ComboAlterNewType.Items.IndexOf(BaseType);
+        if FoundIdx >= 0 then
+          ComboAlterNewType.ItemIndex := FoundIdx
+        else if ComboAlterNewType.Items.Count > 0 then
+          ComboAlterNewType.ItemIndex := 0;
+        EditAlterNewSize.Text := '';
+        EditAlterNewScale.Text := '';
+      end;
+      Break;
+    end;
+  end;
+  UpdateDDL;
+end;
+
+procedure TFBAlterFieldForm.ComboRenameFieldChange(Sender: TObject);
+begin
+  EditRenameNewName.Text := ComboRenameField.Text;
+  UpdateDDL;
 end;
 
 procedure TFBAlterFieldForm.RadioGroupOperationClick(Sender: TObject);

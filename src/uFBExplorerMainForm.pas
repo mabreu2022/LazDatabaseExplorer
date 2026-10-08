@@ -34,6 +34,7 @@ type
     BtnDisconnect: TButton;
     BtnRefreshMeta: TButton;
     BtnNewTable: TButton;
+    BtnAlterTable: TButton;
     BtnRunSQL: TButton;
     BtnCommit: TButton;
     BtnRollback: TButton;
@@ -82,8 +83,9 @@ type
     BtnAlterFieldType: TButton;
     BtnRenameField: TButton;
     BtnDropField: TButton;
-    BtnRefreshStruct: TButton;
+    BtnStructConstraints: TButton;
     BtnIndices: TButton;
+    BtnRefreshStruct: TButton;
     GridStructFields: TStringGrid;
     SplitterStruct: TSplitter;
     MemoDDL: TMemo;
@@ -113,6 +115,17 @@ type
     MenuItemSeparator3: TMenuItem;
     MenuItemRefresh: TMenuItem;
 
+    PopupMenuGridStruct: TPopupMenu;
+    MenuItemGridAlterType: TMenuItem;
+    MenuItemGridAdd: TMenuItem;
+    MenuItemGridRename: TMenuItem;
+    MenuItemGridDrop: TMenuItem;
+    MenuItemGridSep1: TMenuItem;
+    MenuItemGridKeys: TMenuItem;
+    MenuItemGridIndices: TMenuItem;
+    MenuItemGridSep2: TMenuItem;
+    MenuItemGridRefresh: TMenuItem;
+
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -120,6 +133,7 @@ type
     procedure BtnDisconnectClick(Sender: TObject);
     procedure BtnRefreshMetaClick(Sender: TObject);
     procedure BtnNewTableClick(Sender: TObject);
+    procedure BtnAlterTableClick(Sender: TObject);
     procedure BtnRunSQLClick(Sender: TObject);
     procedure BtnCommitClick(Sender: TObject);
     procedure BtnRollbackClick(Sender: TObject);
@@ -134,6 +148,7 @@ type
     procedure TreeViewMetaDeletion(Sender: TObject; Node: TTreeNode);
 
     { Menus de contexto }
+    procedure PopupMenuTreePopup(Sender: TObject);
     procedure MenuItemSelectTopClick(Sender: TObject);
     procedure MenuItemExportTableClick(Sender: TObject);
     procedure MenuItemDDLClick(Sender: TObject);
@@ -169,6 +184,7 @@ type
     procedure BtnDropFieldClick(Sender: TObject);
     procedure BtnRefreshStructClick(Sender: TObject);
     procedure BtnIndicesClick(Sender: TObject);
+    procedure GridStructFieldsDblClick(Sender: TObject);
   private
     FSynEdit: TSynEdit;
     FSynSQLSyn: TSynSQLSyn;
@@ -176,6 +192,7 @@ type
     PageControlQueries: TPageControl;
     function GetActiveSynEdit: TSynEdit;
     function CreateQueryTab(const ATitle: string = ''; const AText: string = ''): TSynEdit;
+    function GetSelectedFieldName: string;
     procedure OpenProcedureSource(const AProcName: string);
     procedure OpenTriggerSource(const ATrigName: string);
     procedure InitSynEdit;
@@ -737,6 +754,27 @@ begin
   end;
 end;
 
+procedure TFBExplorerMainForm.BtnAlterTableClick(Sender: TObject);
+var
+  Tbl: string;
+begin
+  if not FBConnManager.IsConnected then
+  begin
+    ShowMessage('Conecte-se a uma base Firebird antes de editar tabelas.');
+    Exit;
+  end;
+
+  Tbl := GetSelectedTableName;
+  if Tbl = '' then
+  begin
+    ShowMessage('Selecione uma tabela na árvore de metadados à esquerda.');
+    Exit;
+  end;
+
+  LoadTableStructure(Tbl);
+  PageControlMain.ActivePage := TabSheetStructure;
+end;
+
 procedure TFBExplorerMainForm.BtnConstraintsClick(Sender: TObject);
 var
   Tbl: string;
@@ -881,6 +919,26 @@ begin
   end;
 end;
 
+function TFBExplorerMainForm.GetSelectedFieldName: string;
+var
+  Node: TTreeNode;
+  Info: TNodeInfo;
+begin
+  Result := '';
+  // Se o nó selecionado na árvore for um campo, usa o campo da árvore
+  Node := TreeViewMeta.Selected;
+  if (Node <> nil) and (Node.Data <> nil) then
+  begin
+    Info := TNodeInfo(Node.Data);
+    if Info.Kind = nkField then
+      Result := Trim(Info.Name);
+  end;
+
+  // Se não foi selecionado na árvore, tenta obter da linha selecionada no GridStructFields
+  if (Result = '') and (GridStructFields <> nil) and (GridStructFields.Row > 0) and (GridStructFields.Row < GridStructFields.RowCount) then
+    Result := Trim(GridStructFields.Cells[0, GridStructFields.Row]);
+end;
+
 procedure TFBExplorerMainForm.LoadTableStructure(const ATableName: string);
 var
   Flds: TFBMetaFieldList;
@@ -963,6 +1021,16 @@ begin
     begin
       OpenTriggerSource(Info.Name);
       Exit;
+    end
+    else if Info.Kind = nkField then
+    begin
+      Tbl := GetSelectedTableName;
+      if (Tbl <> '') and TFBAlterFieldForm.Execute(Tbl, afmAlterType, Info.Name) then
+      begin
+        LoadTableStructure(Tbl);
+        RefreshMetaDataTree;
+      end;
+      Exit;
     end;
   end;
 
@@ -975,6 +1043,8 @@ procedure TFBExplorerMainForm.OpenSelectedTableData(const ATableName: string; To
 var
   Sql: string;
   Ed: TSynEdit;
+  PKList: TStringList;
+  I: Integer;
 begin
   Sql := TFBMetaDataExtractor.GenerateSelectTopSQL(Trim(ATableName), TopCount);
   Ed := GetActiveSynEdit;
@@ -982,6 +1052,24 @@ begin
     Ed.Text := Sql;
   PageControlMain.ActivePage := TabSheetSQL;
   BtnRunSQLClick(Self);
+
+  // Assegura que chaves primárias sejam identificadas para permitir edição inline sem erros
+  if SQLQuery1.Active and (ATableName <> '') then
+  begin
+    PKList := TStringList.Create;
+    try
+      TFBMetaDataExtractor.GetPrimaryKeys(ATableName, PKList);
+      for I := 0 to SQLQuery1.Fields.Count - 1 do
+      begin
+        if PKList.IndexOf(SQLQuery1.Fields[I].FieldName) >= 0 then
+          SQLQuery1.Fields[I].ProviderFlags := [pfInUpdate, pfInWhere, pfInKey]
+        else
+          SQLQuery1.Fields[I].ProviderFlags := [pfInUpdate];
+      end;
+    finally
+      PKList.Free;
+    end;
+  end;
 end;
 
 procedure TFBExplorerMainForm.MenuItemSelectTopClick(Sender: TObject);
@@ -1068,6 +1156,37 @@ begin
     on E: Exception do
       ShowMessage('Erro ao excluir tabela: ' + LineEnding + E.Message);
   end;
+end;
+
+procedure TFBExplorerMainForm.PopupMenuTreePopup(Sender: TObject);
+var
+  Node: TTreeNode;
+  Info: TNodeInfo;
+  Tbl, Fld: string;
+begin
+  Node := TreeViewMeta.Selected;
+  Tbl := GetSelectedTableName;
+  Fld := '';
+
+  if (Node <> nil) and (Node.Data <> nil) then
+  begin
+    Info := TNodeInfo(Node.Data);
+    if Info.Kind = nkField then
+      Fld := Trim(Info.Name);
+  end;
+
+  if Fld <> '' then
+  begin
+    MenuItemAlterFields.Caption := Format('✏️ Alterar Tipo do Campo "%s"...', [Fld]);
+    MenuItemAlterFields.Visible := True;
+  end
+  else if Tbl <> '' then
+  begin
+    MenuItemAlterFields.Caption := Format('🛠️ Alterar Estrutura de "%s"...', [Tbl]);
+    MenuItemAlterFields.Visible := True;
+  end
+  else
+    MenuItemAlterFields.Visible := False;
 end;
 
 procedure TFBExplorerMainForm.MenuItemAlterFieldsClick(Sender: TObject);
@@ -1252,9 +1371,7 @@ begin
     ShowMessage('Selecione uma tabela para alterar o campo.');
     Exit;
   end;
-  SelFld := '';
-  if GridStructFields.Row > 0 then
-    SelFld := Trim(GridStructFields.Cells[0, GridStructFields.Row]);
+  SelFld := GetSelectedFieldName;
   if TFBAlterFieldForm.Execute(Tbl, afmAlterType, SelFld) then
   begin
     LoadTableStructure(Tbl);
@@ -1273,9 +1390,7 @@ begin
     ShowMessage('Selecione uma tabela para renomear campo.');
     Exit;
   end;
-  SelFld := '';
-  if GridStructFields.Row > 0 then
-    SelFld := Trim(GridStructFields.Cells[0, GridStructFields.Row]);
+  SelFld := GetSelectedFieldName;
   if TFBAlterFieldForm.Execute(Tbl, afmRename, SelFld) then
   begin
     LoadTableStructure(Tbl);
@@ -1294,14 +1409,17 @@ begin
     ShowMessage('Selecione uma tabela para excluir campo.');
     Exit;
   end;
-  SelFld := '';
-  if GridStructFields.Row > 0 then
-    SelFld := Trim(GridStructFields.Cells[0, GridStructFields.Row]);
+  SelFld := GetSelectedFieldName;
   if TFBAlterFieldForm.Execute(Tbl, afmDrop, SelFld) then
   begin
     LoadTableStructure(Tbl);
     RefreshMetaDataTree;
   end;
+end;
+
+procedure TFBExplorerMainForm.GridStructFieldsDblClick(Sender: TObject);
+begin
+  BtnAlterFieldTypeClick(Sender);
 end;
 
 procedure TFBExplorerMainForm.BtnRefreshStructClick(Sender: TObject);
